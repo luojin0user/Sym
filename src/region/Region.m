@@ -30,18 +30,6 @@ classdef Region < handle
             
         end
         
-        function set_region(obj, mu_r, J_r)
-            obj.mu_r = mu_r;
-            obj.J_r = J_r;
-            
-            % 更新 BasicCase 内的几何参数
-            obj.impl.xl = x1;
-            obj.impl.xr = x2;
-            obj.impl.yl = y1;
-            obj.impl.yt = y2;
-            obj.impl.tau_x = x2 - x1;
-            obj.impl.tau_y = y2 - y1;
-        end
         
         function set_H_N_max(obj, Hmax, Nmax)
             % obj.impl.H_max = Hmax;
@@ -56,7 +44,7 @@ classdef Region < handle
             obj.B = B;
             
             % 生成区域方程
-            obj.region_func = obj.impl.gen_region(L, R, T, B);
+            obj.region_func = obj.impl.gen_solution_func(L, R, T, B);
             
             % 示例：手动设置边界邻接信息
             obj.boundarys.bottom = [1];
@@ -67,7 +55,7 @@ classdef Region < handle
         end
         
         % 计算这个区域内部的方程，这里直接返回这个方程，计算过程由set_boundary中的obj.impl.gen_region完成
-        function region_func = get_region_func(obj)
+        function region_func = get_region_solution_func(obj)
             region_func = obj.region_func;
             % region_bc_func = obj.region_bc_func;
         end
@@ -80,22 +68,5 @@ classdef Region < handle
             regions = obj.impl.gen_coefficient_func();
         end
         
-        function cal_boundary(obj, L, R, T, B)
-            global x y
-            suffix = ['_' num2str(obj.idx)];
-            
-            if L
-                obj.impl.L = symfun(sym(['A_z' suffix]), [x y]);
-            end
-            if R
-                obj.impl.R = symfun(sym(['A_z' suffix]), [x y]);
-            end
-            if T
-                obj.impl.T = symfun(sym(['A_z' suffix]), [x y]);
-            end
-            if B
-                obj.impl.B = symfun(sym(['A_z' suffix]), [x y]);
-            end
-        end
     end
 end

@@ -1,6 +1,5 @@
-addpath(genpath(fullfile(pwd, '..\src')));
-addpath(genpath(fullfile(pwd, '..\src\region\')));
-addpath(genpath(fullfile(pwd, '..\src\boundary\')));
+basePath = fileparts(mfilename('fullpath'));
+addpath(genpath(basePath));
 
 run('global_val.m')
 

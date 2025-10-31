@@ -15,7 +15,7 @@ classdef AllRegions < handle
             obj.regions{1} = Region(1, 1, 0, 28, 0, 10, obj.regions);
             obj.regions{1}.set_H_N_max(10, 12);
             obj.regions{1}.set_boundary(0, 0, 1, 0);
-            K1 = obj.regions{1}.get_region_func();
+            K1 = obj.regions{1}.get_region_solution_func();
             
             disp('K1(1):');
             pretty(K1{1});  % MATLAB 版本的 pprint
@@ -28,15 +28,12 @@ classdef AllRegions < handle
             obj.regions{3} = Region(1, 3, 0, 10, 10, 14, obj.regions);
             obj.regions{3}.set_H_N_max(10, 12);
             obj.regions{3}.set_boundary(0, 1, 1, 1);
-            obj.regions{3}.boundarys.bottom = 1;
-            K3 = obj.regions{3}.get_region_func();
+            K3 = obj.regions{3}.get_region_solution_func();
             
-            obj.regions{3}.region_bc_func = obj.regions{3}.boundarys.cal_BC(0, 1, 1, 1);
+            BC3 = obj.regions{3}.gen_region_coefficient_func();
             
             disp('K3(1):');
             pretty(K3{1});
-            
-            BC3 = obj.regions{3}.gen_region_BC_func();
             
             disp('BC3(1):');
             pretty(BC3{1});

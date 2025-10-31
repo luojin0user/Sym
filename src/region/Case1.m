@@ -6,7 +6,7 @@ classdef Case1 < BasicCase
         end
         
         function regions = gen_solution_func(obj, Ln, Rn, Tn, Bn)
-            global x y mu_0
+            syms x y
             % 应用边界条件
             obj.apply_boundaries(Ln, Rn, Tn, Bn);
             % 构造符号求和
@@ -37,15 +37,13 @@ classdef Case1 < BasicCase
             eq_A_z = symfun(sym(['A_z' suffix]), [x y]) == A_z;
             eq_B_x = symfun(sym(['B_x' suffix]), [x y]) == B_x + B_y;
             
-            
-            
             % 返回结果列表
             regions = {eq_A_z, eq_B_x, obj.eq_c_hx, obj.eq_d_hx, obj.eq_e_ny, obj.eq_f_ny};
         end
         
         % 设置系数方程
         function regions = gen_coefficient_func(obj)
-            global x y mu_0
+            syms x y
             % 首先需要知道传入的边界方程，然后直接带入这个方程，这样子就是直接将边界方程带入下面的等式中
             % 也就是经过这个计算之后就直接确定了最后的参数方程
             % 计算 c_hx, d_hx, e_ny, f_ny 的积分表达式
