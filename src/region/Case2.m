@@ -7,9 +7,11 @@ classdef Case2 < BasicCase
     end
     
     methods
-        function obj = Case2(idx, xl, xr, yl, yt)
+        function obj = Case2(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn)
             % 调用父类构造函数
             obj@BasicCase(idx, xl, xr, yl, yt);
+            % 应用边界条件
+            obj.apply_boundaries(Ln, Rn, Tn, Bn);
             
             suffix = ['_' num2str(idx)];
             syms(['J_z' suffix], ['c_0x' suffix], ['d_0x' suffix], 'real')
@@ -22,12 +24,12 @@ classdef Case2 < BasicCase
             obj.A_y_P = 0.5 * obj.mu_0 * obj.mu_r * obj.J_z * y^2;
         end
         
-        function regions = gen_solution_func(obj, Ln, Rn, Tn, Bn)
+        function regions = gen_solution_func(obj)
             syms x y
-            % 应用边界条件
-            obj.apply_boundaries(Ln, Rn, Tn, Bn);
+            
             
             % 构造符号求和
+            %{
             % 沿 x 方向 A_z
             A_zx_expr(x,y) = (obj.yt - y) * obj.c_0x + (y - obj.yl) * obj.d_0x + ...
                 symsum( ...
@@ -42,8 +44,8 @@ classdef Case2 < BasicCase
                 (obj.f_ny / obj.lambda_n) .* cosh(obj.lambda_n * (obj.xr - x)) ./ sinh(obj.lambda_n * obj.tau_x)) .* ...
                 sin(obj.lambda_n * (y - obj.yl)), ...
                 obj.n, 1, obj.N_max);
-            
-            A_z = A_zx_expr + A_zy_expr;
+            %}
+            A_z = obj.A_zx_expr + obj.A_zy_expr;
             
             % 磁场分量
             B_x = diff(A_z, y);
@@ -75,7 +77,7 @@ classdef Case2 < BasicCase
             obj.eq_e_ny = symfun(sym(['c_0x' suffix]), [x,y]) == c_0x_expr;
             obj.eq_f_ny = symfun(sym(['d_0x' suffix]), [x,y]) == d_0x_expr;
             
-            obj.eq_c_hx = symfun(sym(['d_hx' suffix]), [x,y]) == c_hx_expr;
+            obj.eq_c_hx = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
             obj.eq_d_hx = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
             obj.eq_e_ny = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
             obj.eq_f_ny = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;

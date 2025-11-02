@@ -1,5 +1,8 @@
 classdef BasicCase < handle
     properties
+        x
+        y
+        
         idx
         
         % --- 公共编号变量 ---
@@ -12,10 +15,15 @@ classdef BasicCase < handle
         
         
         % --- 公共函数 ---
-        T
-        B
-        L
-        R
+        T_funcs
+        B_funcs
+        L_funcs
+        R_funcs
+        
+        T_coeffs
+        B_coeffs
+        L_coeffs
+        R_coeffs
         
         % --- 公共求和指标 ---
         h
@@ -40,16 +48,29 @@ classdef BasicCase < handle
         eq_d_hx
         eq_e_ny
         eq_f_ny
+        
+        A_zx_expr
+        A_zy_expr
+        
+        % 这里是Ax项中c d e f四个系数乘以的东西
+        Ax_c
+        Ax_d
+        Ax_e
+        Ax_f
+        
     end
     
     methods
         % 构造函数
-        function obj = BasicCase(idx, xl, xr, yl, yt)
-            global x y mu_0
+        function obj = BasicCase(idx, xl, xr, yl, yt, H_max, N_max)
+            syms x y
             if nargin < 1
                 error('必须指定 idx');
             end
             obj.idx = idx;
+            obj.x = x;
+            obj.y = y;
+            
             suffix = ['_' num2str(idx)];
             
             % --- 公共编号变量 ---
@@ -69,24 +90,24 @@ classdef BasicCase < handle
             obj.tau_y = obj.yt - obj.yl;
             
             % --- 公共函数 ---
-            obj.T = symfun(sym('T'), [x, y]);  % T(x,y)
-            obj.B = symfun(sym('B'), [x, y]);  % B(x,y)
-            obj.L = symfun(sym('L'), [x, y]);  % L(x,y)
-            obj.R = symfun(sym('R'), [x, y]);  % R(x,y)
-            
+            %{
+                obj.T = symfun(sym('T'), [x, y]);  % T(x,y)
+                obj.B = symfun(sym('B'), [x, y]);  % B(x,y)
+                obj.L = symfun(sym('L'), [x, y]);  % L(x,y)
+                obj.R = symfun(sym('R'), [x, y]);  % R(x,y)
+            %}
             
             % --- 公共求和指标 ---
-            syms h n integer;
-            obj.h = h;
-            obj.n = n;
+            obj.h = sym(['h' suffix], 'integer');
+            obj.n = sym(['n' suffix], 'integer');
             
             % 定义符号变量
             syms mu_r 'real'
-            syms H_max N_max 'integer'
+            % syms H_max N_max 'integer'
             
             % 定义符号函数
-            obj.beta_h = h * pi / obj.tau_x;      % beta 是关于 h 的函数
-            obj.lambda_n = n * pi / obj.tau_y;  % lambda 是关于 n 的函数
+            obj.beta_h = obj.h * pi / obj.tau_x;      % beta 是关于 h 的函数
+            obj.lambda_n = obj.n * pi / obj.tau_y;  % lambda 是关于 n 的函数
             
             % 直接赋值给对象属性
             obj.mu_r = mu_r;

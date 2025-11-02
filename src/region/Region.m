@@ -18,11 +18,17 @@ classdef Region < handle
     end
     
     methods
-        function obj = Region(c1_or_c2, idx, xl, xr, yl, yt, all_regions)
+        function obj = Region(c1_or_c2, idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max, all_regions)
+            % L/R/T/B 为 bool 值，表示边界是否存在
+            obj.L = Ln;
+            obj.R = Rn;
+            obj.T = Tn;
+            obj.B = Bn;
+            
             if c1_or_c2 == 1
-                obj.impl = Case1(idx, xl, xr, yl, yt);
+                obj.impl = BTAir(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max);
             else
-                obj.impl = Case2(idx, xl, xr, yl, yt);
+                obj.impl = NormalAir(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max);
             end
             obj.idx = idx;
             obj.all_regions = all_regions;
@@ -32,19 +38,15 @@ classdef Region < handle
         
         
         function set_H_N_max(obj, Hmax, Nmax)
-            % obj.impl.H_max = Hmax;
-            % obj.impl.N_max = Nmax;
+            obj.impl.H_max = Hmax;
+            obj.impl.N_max = Nmax;
         end
         
-        function set_boundary(obj, L, R, T, B)
-            % L/R/T/B 为 bool 值，表示边界是否存在
-            obj.L = L;
-            obj.R = R;
-            obj.T = T;
-            obj.B = B;
+        
+        function set_boundary(obj)
             
             % 生成区域方程
-            obj.region_func = obj.impl.gen_solution_func(L, R, T, B);
+            obj.region_func = obj.impl.gen_solution_func();
             
             % 示例：手动设置边界邻接信息
             obj.boundarys.bottom = [1];
@@ -54,11 +56,13 @@ classdef Region < handle
             
         end
         
+        
         % 计算这个区域内部的方程，这里直接返回这个方程，计算过程由set_boundary中的obj.impl.gen_region完成
         function region_func = get_region_solution_func(obj)
             region_func = obj.region_func;
             % region_bc_func = obj.region_bc_func;
         end
+        
         
         % 计算这个区域系数的方程，这里是在所有区域内部方程计算完成之后调用的
         function regions = gen_region_coefficient_func(obj)
