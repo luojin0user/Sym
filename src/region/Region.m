@@ -65,11 +65,14 @@ classdef Region < handle
         
         
         % 计算这个区域系数的方程，这里是在所有区域内部方程计算完成之后调用的
-        function regions = gen_region_coefficient_func(obj)
-            % 首先需要计算边界方程，调用Cal_BC方法
-            obj.region_bc_func = obj.boundarys.cal_BC(obj.L, obj.R, obj.T, obj.B);
+        function [funcs, means] = gen_region_coefficient_func(obj)
+            % 首先需要计算边界方程，调用Cal_BC方法，然后就修改了Region中的impl属性的边界方程等等
+            obj.boundarys.cal_BC(obj.L, obj.R, obj.T, obj.B);
             % 获得了边界方程之后，调用impl的方法生成
-            regions = obj.impl.gen_coefficient_func();
+            obj.impl.gen_coefficient_func();
+            % 收集系数方程及其对应的值，上下一一对应
+            funcs = {obj.impl.eq_c_hx, obj.impl.eq_d_hx, obj.impl.eq_e_ny, obj.impl.eq_f_ny};
+            means = {obj.impl.B_coeffs, obj.impl.T_coeffs, obj.impl.R_coeffs, obj.impl.L_coeffs};
         end
         
     end

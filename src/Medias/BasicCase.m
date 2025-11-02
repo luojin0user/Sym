@@ -52,12 +52,6 @@ classdef BasicCase < handle
         A_zx_expr
         A_zy_expr
         
-        % 这里是Ax项中c d e f四个系数乘以的东西
-        Ax_c
-        Ax_d
-        Ax_e
-        Ax_f
-        
     end
     
     methods
@@ -88,14 +82,6 @@ classdef BasicCase < handle
             
             obj.tau_x = obj.xr - obj.xl;
             obj.tau_y = obj.yt - obj.yl;
-            
-            % --- 公共函数 ---
-            %{
-                obj.T = symfun(sym('T'), [x, y]);  % T(x,y)
-                obj.B = symfun(sym('B'), [x, y]);  % B(x,y)
-                obj.L = symfun(sym('L'), [x, y]);  % L(x,y)
-                obj.R = symfun(sym('R'), [x, y]);  % R(x,y)
-            %}
             
             % --- 公共求和指标 ---
             obj.h = sym(['h' suffix], 'integer');

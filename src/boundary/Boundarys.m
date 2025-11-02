@@ -30,7 +30,7 @@ classdef Boundarys < handle
             obj.right = l;
         end
         
-        function bc_eqs = cal_BC(obj, Ln, Rn, Tn, Bn)
+        function cal_BC(obj, Ln, Rn, Tn, Bn)
             syms x y real
             % 根据 bc_type 生成边界方程
             switch obj.bc_type
@@ -90,42 +90,49 @@ classdef Boundarys < handle
                 case BC_TYPE.AABB
                     % 暂时空
             end
-            
-            bc_eqs = {eqT, eqB, eqL, eqR};
+            % 这里修改了impl中的属性，无需再返回值
         end
         
         function [coeffs, eqF] = genAA(obj, right_idx)
             % 首先需要找到对应的方程，如果对应的方程中间包含多个c d e f，需要一一进行判断处理，然后送入数组中，和这个区域的边界情况的方程匹配
             % 如果由多个，送入数组中，由region类对这个数组进行处理
-            eqF = {};
-            coeffs = {};
+            eqF = cell(1,4);
+            coeffs = cell(1,4);
             if right_idx == 0
                 eqF = {0};
             else
-                % 邻接区域的 A_z
+                % 邻接区域的 A_z，
                 % 当是邻接区域的，直接把这个邻接区域的方程A_z送给对应的top
                 % 除此之外，还要令对应的方程的变量值为边界值
                 edge_region = obj.impl.all_regions{right_idx}; % 获取邻接区域对象
                 edge_impl = edge_region.impl;
                 if edge_region.B ~= 0
-                    eqF{end+1} = subs(edge_impl.A_zx_expr, edge_impl.d_hx, 0);
-                    eqF{end} = subs(edge_impl.A_zx_expr, edge_impl.c_hx, 1);
-                    coeffs{end+1} = edge_impl.c_hx;
+                    F1 = subs(edge_impl.A_zx_expr, edge_impl.d_hx, 0);
+                    F = subs(F1, edge_impl.c_hx, 1);
+                    F = F * obj.impl.impl.beta_h;
+                    eqF{1} = F;
+                    coeffs{1} = edge_impl.c_hx;
                 end
                 if edge_region.T ~= 0
-                    eqF{end+1} = subs(edge_impl.A_zx_expr, edge_impl.c_hx, 0);
-                    eqF{end} = subs(edge_impl.A_zx_expr, edge_impl.d_hx, 1);
-                    coeffs{end+1} = edge_impl.d_hx;
+                    F1 = subs(edge_impl.A_zx_expr, edge_impl.c_hx, 0);
+                    F = subs(F1, edge_impl.d_hx, 1);
+                    F = F * obj.impl.impl.beta_h;
+                    eqF{2} = F;
+                    coeffs{2} = edge_impl.d_hx;
                 end
                 if edge_region.R ~= 0
-                    eqF{end+1} = subs(edge_impl.A_zy_expr, edge_impl.f_ny, 0);
-                    eqF{end} = subs(edge_impl.A_zy_expr, edge_impl.e_ny, 1);
-                    coeffs{end+1} = edge_impl.e_ny;
+                    F1 = subs(edge_impl.A_zy_expr, edge_impl.f_ny, 0);
+                    F = subs(F1, edge_impl.e_ny, 1);
+                    F = F * obj.impl.impl.lambda_n;
+                    eqF{3} = F;
+                    coeffs{3} = edge_impl.e_ny;
                 end
                 if edge_region.L ~= 0
-                    eqF{end+1} = subs(edge_impl.A_zy_expr, edge_impl.e_ny, 0);
-                    eqF{end} = subs(edge_impl.A_zy_expr, edge_impl.f_ny, 1);
-                    coeffs{end+1} = edge_impl.f_ny;
+                    F1 = subs(edge_impl.A_zy_expr, edge_impl.e_ny, 0);
+                    F = subs(F1, edge_impl.f_ny, 1);
+                    F = F * obj.impl.impl.lambda_n;
+                    eqF{4} = F;
+                    coeffs{4} = edge_impl.f_ny;
                 end
                 
                 % G = obj.impl.all_regions{right_idx}.region_func{1};     % region_func的第1个就是对应的Az
