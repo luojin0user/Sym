@@ -51,7 +51,7 @@ classdef AllRegions < handle
             pretty(BC3{1}{2});
             
             disp('BC3(4):');
-            pretty(BC3{4}{1});
+            pretty(BC3{4}{5});
             
             
             %% 符号代入计算

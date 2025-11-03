@@ -95,12 +95,15 @@ classdef BasicCase < handle
             obj.tau_y = obj.yt - obj.yl;
             
             % --- 公共求和指标 ---
-            obj.h = sym(['h' suffix], 'integer');
-            obj.n = sym(['n' suffix], 'integer');
+            % obj.h = sym(['h' suffix], 'integer');
+            % obj.n = sym(['n' suffix], 'integer');
+            
+            obj.h = H_max;
+            obj.n = N_max;
             
             % 定义符号变量
             syms mu_r 'real'
-            syms H_max N_max 'integer'
+            % syms H_max N_max 'integer'
             
             % 定义符号函数
             obj.beta_h = obj.h * pi / obj.tau_x;      % beta 是关于 h 的函数

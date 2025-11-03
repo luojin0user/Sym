@@ -164,8 +164,8 @@ classdef Boundarys < handle
         function [coeffs, eqF] = genAA(obj, right_idx)
             % 首先需要找到对应的方程，如果对应的方程中间包含多个c d e f，需要一一进行判断处理，然后送入数组中，和这个区域的边界情况的方程匹配
             % 如果由多个，送入数组中，由region类对这个数组进行处理
-            eqF = cell(1,4);
-            coeffs = cell(1,4);
+            eqF = cell(1,6);
+            coeffs = cell(1,6);
             if right_idx == 0
                 eqF = {0};
             else
@@ -174,19 +174,34 @@ classdef Boundarys < handle
                 % 除此之外，还要令对应的方程的变量值为边界值
                 edge_region = obj.impl.all_regions{right_idx}; % 获取邻接区域对象
                 edge_impl = edge_region.impl;
-                if edge_region.Bn == 0
-                    F1 = subs(edge_impl.A_zx_expr, edge_impl.d_hx, 0);
-                    F1 = subs(F1, edge_impl.d_0x, 0);
-                    F1 = subs(F1, edge_impl.c_0x, 1);   % 如果有c_0x的话，同样置为1，如果有d_0x的话，置为0
-                    F = subs(F1, edge_impl.c_hx, 1);
-                    F = F * obj.case_impl.beta_h;
+                has_cd0x = (edge_region.case_type == CaseType.FerriteCurrent);     % 当邻接区域是FerriteCurrent时，需要处理
+                if has_cd0x
+                    % 首先处理c_0x
+                    F = subs(edge_impl.A_zx_expr, {edge_impl.c_hx, edge_impl.d_hx, edge_impl.c_0x, edge_impl.d_0x}, {0, 0, 1, 0});    % 只留下c_0x
+                    eqF{5} = F;
+                    coeffs{5} = edge_impl.c_hx;
+                    
+                    F = subs(edge_impl.A_zx_expr, {edge_impl.c_hx, edge_impl.d_hx, edge_impl.c_0x, edge_impl.d_0x}, {0, 0, 0, 1});    % 只留下c_0x
+                    eqF{6} = F;
+                    coeffs{6} = edge_impl.c_hx;
+                end
+                
+                if edge_region.Bn == 0  % 相邻区域的这个边界上有c_hx
+                    % 如果有c_0x，说明这个需要考虑分段函数
+                    % 分段函数直接放在最后两个位置，分别是c_0x和d_0x的表达式
+                    F1 = subs(edge_impl.A_zx_expr, {edge_impl.c_hx, edge_impl.d_hx}, {1, 0});
+                    if has_cd0x
+                        F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
+                    end
+                    F = F1 * obj.case_impl.beta_h;
                     eqF{1} = F;
                     coeffs{1} = edge_impl.c_hx;
                 end
                 if edge_region.Tn == 0
                     F1 = subs(edge_impl.A_zx_expr, edge_impl.c_hx, 0);
-                    F1 = subs(F1, edge_impl.c_0x, 0);
-                    F1 = subs(F1, edge_impl.d_0x, 1);
+                    if has_cd0x
+                        F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
+                    end
                     F = subs(F1, edge_impl.d_hx, 1);
                     F = F * obj.case_impl.beta_h;
                     eqF{2} = F;
@@ -213,6 +228,7 @@ classdef Boundarys < handle
         
         
         function [coeffs, eqF] = genBB(obj, right_idx, cd_or_ef)
+            % 这里记得乘以2个的mu_0的系数
             % 首先需要找到对应的方程，如果对应的方程中间包含多个c d e f，需要一一进行判断处理，然后送入数组中，和这个区域的边界情况的方程匹配
             % 如果由多个，送入数组中，由region类对这个数组进行处理
             eqF = cell(1,4);
