@@ -44,6 +44,7 @@ classdef Boundarys < handle
                         top_idx = obj.top(1);
                         [coeffs, eqT] = obj.genAA(top_idx);
                         for i = 1:length(eqT)
+                            eqT{i} = eqT{i} * obj.case_impl.beta_h;  % 乘以 beta_h
                             eqT{i} = subs(eqT{i}, y, obj.case_impl.yt);
                         end
                         obj.case_impl.T_funcs = eqT;
@@ -59,6 +60,7 @@ classdef Boundarys < handle
                         
                         [coeffs, eqB] = obj.genAA(bottom_idx);
                         for i = 1:length(eqB)
+                            eqB{i} = eqB{i} * obj.case_impl.beta_h;  % 乘以 beta_h
                             eqB{i} = subs(eqB{i}, y, obj.case_impl.yl);
                         end
                         obj.case_impl.B_funcs = eqB;
@@ -74,6 +76,7 @@ classdef Boundarys < handle
                         
                         [coeffs, eqL] = obj.genAA(left_idx);
                         for i = 1:length(eqL)
+                            eqL{i} = eqL{i} * obj.case_impl.lambda_n;
                             eqL{i} = subs(eqL{i}, x, obj.case_impl.xl);
                         end
                         obj.case_impl.L_funcs = eqL;
@@ -89,6 +92,7 @@ classdef Boundarys < handle
                         
                         [coeffs, eqR] = obj.genAA(right_idx);
                         for i = 1:length(eqR)
+                            eqR{i} = eqR{i} * obj.case_impl.lambda_n;
                             eqR{i} = subs(eqR{i}, x, obj.case_impl.xr);
                         end
                         obj.case_impl.R_funcs = eqR;
@@ -193,8 +197,7 @@ classdef Boundarys < handle
                     if has_cd0x
                         F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
                     end
-                    F = F1 * obj.case_impl.beta_h;
-                    eqF{1} = F;
+                    eqF{1} = F1;
                     coeffs{1} = edge_impl.c_hx;
                 end
                 if edge_region.Tn == 0
@@ -203,21 +206,18 @@ classdef Boundarys < handle
                         F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
                     end
                     F = subs(F1, edge_impl.d_hx, 1);
-                    F = F * obj.case_impl.beta_h;
                     eqF{2} = F;
                     coeffs{2} = edge_impl.d_hx;
                 end
                 if edge_region.Rn == 0
                     F1 = subs(edge_impl.A_zy_expr, edge_impl.f_ny, 0);
                     F = subs(F1, edge_impl.e_ny, 1);
-                    F = F * obj.case_impl.lambda_n;
                     eqF{3} = F;
                     coeffs{3} = edge_impl.e_ny;
                 end
                 if edge_region.Ln == 0
                     F1 = subs(edge_impl.A_zy_expr, edge_impl.e_ny, 0);
                     F = subs(F1, edge_impl.f_ny, 1);
-                    F = F * obj.case_impl.lambda_n;
                     eqF{4} = F;
                     coeffs{4} = edge_impl.f_ny;
                 end

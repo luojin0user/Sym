@@ -80,11 +80,12 @@ classdef BasicCase < handle
             
             % --- 公共编号变量 ---
             % 定义符号变量（不带后缀）
+            
+            obj.xr = sym(['xr' suffix], 'real');
+            obj.xl = sym(['xl' suffix], 'real');
+            obj.yt = sym(['yt' suffix], 'real');
+            obj.yl = sym(['yl' suffix], 'real');
             %{
-            xr = sym('xr', 'real');
-            xl = sym('xl', 'real');
-            yt = sym('yt', 'real');
-            yl = sym('yl', 'real');
             %}
             obj.xr = xr;
             obj.xl = xl;
@@ -95,11 +96,11 @@ classdef BasicCase < handle
             obj.tau_y = obj.yt - obj.yl;
             
             % --- 公共求和指标 ---
-            % obj.h = sym(['h' suffix], 'integer');
-            % obj.n = sym(['n' suffix], 'integer');
+            obj.h = sym(['h' suffix], 'integer');
+            obj.n = sym(['n' suffix], 'integer');
             
-            obj.h = H_max;
-            obj.n = N_max;
+            % obj.h = H_max;
+            % obj.n = N_max;
             
             % 定义符号变量
             syms mu_r 'real'

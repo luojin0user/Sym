@@ -94,12 +94,12 @@ classdef Case2 < BasicCase
             end
             
             for i = 1:length(obj.L_funcs)
-                e_ny_expr(x,y) = (2/obj.tau_y) * int(obj.L_funcs{i} .* sin(obj.lambda_n*(y - yl)), y, yl, yl + obj.tau_y,'Hold',true);
+                e_ny_expr(x,y) = (2/obj.tau_y) * int(obj.L_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
                 obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
             end
             
             for i = 1:length(obj.R_funcs)
-                f_ny_expr(x,y) = (2/obj.tau_y) * int(obj.R_funcs{i} .* sin(obj.lambda_n*(y - yl)), y, yl, yl + obj.tau_y,'Hold',true);
+                f_ny_expr(x,y) = (2/obj.tau_y) * int(obj.R_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
                 obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;
             end
             

@@ -36,7 +36,7 @@ classdef AllRegions < handle
             pretty(K3{1});  % MATLAB 版本的 pprint
             
             %% 区域6
-            obj.regions{6} = Region(6, CaseType.FerriteCurrent, 100, 280, 100, 140, ...
+            obj.regions{6} = Region(6, CaseType.FerriteCurrent, 100, 120, 100, 140, ...
                 BC_TYPE.AABB, [2],[1],[3],[5], 1, 1);
             K6 = obj.regions{6}.get_region_solution_func();
             disp('K6(1):');
@@ -50,7 +50,10 @@ classdef AllRegions < handle
             disp('BC3(1):');
             pretty(BC3{1}{2});
             
-            disp('BC3(4):');
+            disp('Q36cn3,h6 > 1');
+            pretty(BC3{4}{1});
+            
+            disp('Q36cn3,0');
             pretty(BC3{4}{5});
             
             
@@ -60,7 +63,7 @@ classdef AllRegions < handle
             
             % 将 A_z_3 代入 d_hx_3_eq
             % eq_final = subs(eq_main, lhs(eq_sub1), rhs(eq_sub1));
-            eq_final = subs(eq_main, obj.regions{3}.impl.h, 1);
+            eq_final = subs(eq_main, obj.regions{6}.impl.h, 1);
             eq_final = subs(eq_final, obj.regions{3}.impl.n, 1);
             % 去除 Hold，自动求积分
             eq_final = release(rhs(eq_final));
