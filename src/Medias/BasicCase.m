@@ -32,11 +32,15 @@ classdef BasicCase < handle
         % --- 公共参数 ---
         beta_h
         lambda_n
+        mu_0
         mu_r
         H_max
         N_max
         
         % --- 边界积分项 ---
+        c_0x
+        d_0x
+        
         c_hx
         d_hx
         e_ny
@@ -52,6 +56,13 @@ classdef BasicCase < handle
         A_zx_expr
         A_zy_expr
         
+        eq_A_z
+        eq_B_x
+        
+        B_x_x
+        B_x_y
+        B_y_x
+        B_y_y
     end
     
     methods
@@ -89,7 +100,7 @@ classdef BasicCase < handle
             
             % 定义符号变量
             syms mu_r 'real'
-            % syms H_max N_max 'integer'
+            syms H_max N_max 'integer'
             
             % 定义符号函数
             obj.beta_h = obj.h * pi / obj.tau_x;      % beta 是关于 h 的函数
@@ -110,16 +121,16 @@ classdef BasicCase < handle
         
         % 公共逻辑：处理 Ln/Rn/Tn/Bn
         function apply_boundaries(obj, Ln, Rn, Tn, Bn)
-            if ~Ln
-                obj.f_ny = 0;
-            end
-            if ~Rn
+            if Ln   % 没有左边界
                 obj.e_ny = 0;
             end
-            if ~Tn
+            if Rn
+                obj.f_ny = 0;
+            end
+            if Tn   % 没有上边界
                 obj.d_hx = 0;
             end
-            if ~Bn
+            if Bn
                 obj.c_hx = 0;
             end
         end
