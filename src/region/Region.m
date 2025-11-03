@@ -73,8 +73,8 @@ classdef Region < handle
             % 获得了边界方程之后，调用impl的方法生成
             obj.impl.gen_coefficient_func();
             % 收集系数方程及其对应的值，上下一一对应
-            funcs = {obj.impl.eq_c_hx, obj.impl.eq_d_hx, obj.impl.eq_e_ny, obj.impl.eq_f_ny};
-            means = {obj.impl.B_coeffs, obj.impl.T_coeffs, obj.impl.R_coeffs, obj.impl.L_coeffs};
+            funcs = [obj.impl.eq_c_hx; obj.impl.eq_d_hx; obj.impl.eq_e_ny; obj.impl.eq_f_ny];
+            means = [obj.impl.B_coeffs; obj.impl.T_coeffs; obj.impl.R_coeffs; obj.impl.L_coeffs];
         end
         
     end

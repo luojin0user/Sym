@@ -53,27 +53,44 @@ classdef Case1 < BasicCase
             % 也就是经过这个计算之后就直接确定了最后的参数方程
             % 计算 c_hx, d_hx, e_ny, f_ny 的积分表达式
             % 这里需要注意，传入的方程 e.g. obj.B_funcs 是一个cell数组，其中的每一项是这个边界的另一边的函数的c d e f系数，对应 obj.B_coeffs ，所以需要对这个边界的4个系数分别计算，也就最多会产生16个系数方程
-            obj.eq_c_hx = cell(1,4);
-            obj.eq_d_hx = cell(1,4);
-            obj.eq_e_ny = cell(1,4);
-            obj.eq_f_ny = cell(1,4);
+            obj.eq_c_hx = cell(1,6);
+            obj.eq_d_hx = cell(1,6);
+            obj.eq_e_ny = cell(1,6);
+            obj.eq_f_ny = cell(1,6);
             
             for i = 1:length(obj.B_funcs)
+                if obj.B_funcs{i} == 0
+                    obj.eq_c_hx{row, ceil(i/row)} = 0;
+                    continue; % 跳过为零的函数
+                end
                 c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
-                obj.eq_c_hx{i} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
+                
+                obj.eq_c_hx{ceil(i/6), mod(i+5,6)} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
             end
             
             for i = 1:length(obj.T_funcs)
+                if obj.T_funcs{i} == 0
+                    obj.eq_d_hx{row, ceil(i/row)} = 0;
+                    continue; % 跳过为零的函数
+                end
                 d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
-                obj.eq_d_hx{i} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
+                obj.eq_d_hx{ceil(i/6), mod(i+5,6)+1} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
             end
             
             for i = 1:length(obj.L_funcs)
+                if obj.L_funcs{i} == 0
+                    obj.eq_e_ny{row, ceil(i/row)} = 0;
+                    continue; % 跳过为零的函数
+                end
                 e_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.L_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
                 obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
             end
             
             for i = 1:length(obj.R_funcs)
+                if obj.L_funcs{i} == 0
+                    obj.eq_f_ny{row, ceil(i/row)} = 0;
+                    continue; % 跳过为零的函数
+                end
                 f_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.R_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
                 obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;
             end
