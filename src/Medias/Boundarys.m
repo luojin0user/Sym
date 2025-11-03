@@ -15,21 +15,6 @@ classdef Boundarys < handle
             obj.case_impl = impl.impl;  % 这个指的是如BTAir类的一个实例
         end
         
-        function set_top(obj, l)
-            obj.top = l;
-        end
-        
-        function set_bottom(obj, l)
-            obj.bottom = l;
-        end
-        
-        function set_left(obj, l)
-            obj.left = l;
-        end
-        
-        function set_right(obj, l)
-            obj.right = l;
-        end
         
         function cal_BC(obj, Ln, Rn, Tn, Bn)
             syms x y real
