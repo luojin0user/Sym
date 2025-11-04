@@ -362,7 +362,7 @@ classdef Boundarys < handle
                 if cd_or_ef == 1
                     F1 = edge_impl.B_x_x;
                 else
-                    F1 = edge_impl.B_y_x,;
+                    F1 = edge_impl.B_y_x;
                 end
             else
                 if cd_or_ef == 1

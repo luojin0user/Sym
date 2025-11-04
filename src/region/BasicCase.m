@@ -63,6 +63,15 @@ classdef BasicCase < handle
         B_x_y
         B_y_x
         B_y_y
+        
+        % 边界邻接区域
+        tops
+        bottoms
+        lefts
+        rights
+        
+        % 储存所有区域
+        all_regions
     end
     
     methods
@@ -85,13 +94,13 @@ classdef BasicCase < handle
             obj.xl = sym(['xl' suffix], 'real');
             obj.yt = sym(['yt' suffix], 'real');
             obj.yl = sym(['yl' suffix], 'real');
-            
             %{
+            %}
             obj.xr = xr;
             obj.xl = xl;
             obj.yt = yt;
             obj.yl = yl;
-            %}
+            
             obj.tau_x = obj.xr - obj.xl;
             obj.tau_y = obj.yt - obj.yl;
             

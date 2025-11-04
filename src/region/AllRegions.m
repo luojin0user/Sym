@@ -32,7 +32,7 @@ classdef AllRegions < handle
             pretty(K3{1});  % MATLAB 版本的 pprint
             
             %% 区域 4
-            obj.regions{4} = Region(4, CaseType.NormalAir, 180, 180, 100, 140, ...
+            obj.regions{4} = Region(4, CaseType.NormalAir, 180, 280, 100, 140, ...
                 BC_TYPE.AAAA, [2],[1],[7],[0], 1, 1);
             K4 = obj.regions{4}.get_region_solution_func();
             
@@ -72,13 +72,15 @@ classdef AllRegions < handle
             
             
             %% 符号代入计算
-            eq_main = BC1{3}{2};
+            eq_main = BC1{3, 3};
             % eq_main_means = M3{4}{1};
             
             % 将 A_z_3 代入 d_hx_3_eq
             % eq_final = subs(eq_main, lhs(eq_sub1), rhs(eq_sub1));
-            eq_final = subs(eq_main, obj.regions{6}.impl.h, 1);
-            eq_final = subs(eq_final, obj.regions{3}.impl.n, 1);
+            eq_final = subs(eq_main, obj.regions{1}.impl.h, 1);
+            eq_final = subs(eq_final, obj.regions{1}.impl.n, 1);
+            eq_final = subs(eq_final, obj.regions{4}.impl.n, 1);
+            eq_final = subs(eq_final, obj.regions{4}.impl.h, 1);
             % 去除 Hold，自动求积分
             eq_final = release(rhs(eq_final));
             

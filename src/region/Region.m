@@ -55,6 +55,12 @@ classdef Region < handle
             obj.boundarys.left = left;
             obj.boundarys.right = right;
             obj.boundarys.bc_type = bc_type;
+            
+            % 同时将对应的边写入BasicCase类中
+            obj.impl.tops = top;
+            obj.impl.bottoms = bottom;
+            obj.impl.lefts = left;
+            obj.impl.rights = right;
         end
         
         
@@ -68,6 +74,7 @@ classdef Region < handle
         % 计算这个区域系数的方程，这里是在所有区域内部方程计算完成之后调用的
         function [funcs, means] = gen_region_coefficient_func(obj, all_regions)
             obj.all_regions = all_regions;
+            obj.impl.all_regions = all_regions;
             % 首先需要计算边界方程，调用Cal_BC方法，然后就修改了Region中的impl属性的边界方程等等
             obj.boundarys.cal_BC(obj.Ln, obj.Rn, obj.Tn, obj.Bn);
             % 获得了边界方程之后，调用impl的方法生成

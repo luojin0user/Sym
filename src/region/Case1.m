@@ -59,27 +59,37 @@ classdef Case1 < BasicCase
             obj.eq_f_ny = cell(1,6);
             
             for i = 1:length(obj.B_funcs)
-                if obj.B_funcs{i} == 0
-                    obj.eq_c_hx{row, ceil(i/row)} = 0;
+                row = ceil(i/6);
+                col = mod(i+5,6)+1;
+                if isempty(obj.B_funcs{i})
+                    obj.eq_c_hx{row, col} = 0;
                     continue; % 跳过为零的函数
                 end
-                c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
+                % 对于分段函数的积分上下限，是对应的邻接区域的上下限，而不是当前区域的上下限
+                % 首先找到对应临界区域
+                bottom_idx = obj.tops(row);
+                bottom_i = obj.all_regions{bottom_idx}.impl;  % 对应的top_i的对象的实现
+                c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x,'Hold',true);
                 
-                obj.eq_c_hx{ceil(i/6), mod(i+5,6)} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
+                obj.eq_c_hx{row, col} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
             end
             
             for i = 1:length(obj.T_funcs)
-                if obj.T_funcs{i} == 0
-                    obj.eq_d_hx{row, ceil(i/row)} = 0;
+                row = ceil(i/6);
+                col = mod(i+5,6)+1;
+                if isempty(obj.T_funcs{i})
+                    obj.eq_d_hx{row, col} = 0;
                     continue; % 跳过为零的函数
                 end
-                d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
-                obj.eq_d_hx{ceil(i/6), mod(i+5,6)+1} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
+                top_idx = obj.tops(row);
+                top_i = obj.all_regions{top_idx}.impl;  % 对应的top_i的对象的实现
+                d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x,'Hold',true);
+                obj.eq_d_hx{row, col} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
             end
             
             for i = 1:length(obj.L_funcs)
-                if obj.L_funcs{i} == 0
-                    obj.eq_e_ny{row, ceil(i/row)} = 0;
+                if isempty(obj.L_funcs{i})
+                    obj.eq_e_ny{i} = 0;
                     continue; % 跳过为零的函数
                 end
                 e_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.L_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
@@ -87,8 +97,8 @@ classdef Case1 < BasicCase
             end
             
             for i = 1:length(obj.R_funcs)
-                if obj.L_funcs{i} == 0
-                    obj.eq_f_ny{row, ceil(i/row)} = 0;
+                if isempty(obj.L_funcs{i})
+                    obj.eq_f_ny{i} = 0;
                     continue; % 跳过为零的函数
                 end
                 f_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.R_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
