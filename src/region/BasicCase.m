@@ -25,6 +25,13 @@ classdef BasicCase < handle
         L_coeffs
         R_coeffs
         
+        Ln
+        Rn
+        Tn
+        Bn
+        
+        num_idx_hn  % num_idx_hn(idx,1)用于储存与idx区域边界相接的变量的h个数（对方的c d），ef个数为2
+        
         % --- 公共求和指标 ---
         h
         n
@@ -70,8 +77,12 @@ classdef BasicCase < handle
         lefts
         rights
         
-        % 储存所有区域
-        all_regions
+        
+        all_regions     % 储存所有区域
+        num_coeffs      % 这个区域的参数个数
+        coeffs_exists      % 当前区域的参数情况，1x6的数组，代表c0 c d0 d e f
+        BCfuncs_loc_map   % 边界方程的位置，索引代表区域，值1代表边界方程的类型（2=c=B，4=d=T，5=e=L，6=f=R），值2代表方程索引
+        edge_idx_
     end
     
     methods
@@ -134,17 +145,27 @@ classdef BasicCase < handle
         
         % 公共逻辑：处理 Ln/Rn/Tn/Bn
         function apply_boundaries(obj, Ln, Rn, Tn, Bn)
+            obj.Ln = Ln;
+            obj.Rn = Rn;
+            obj.Tn = Tn;
+            obj.Bn = Bn;
+            
+            
             if Ln   % 没有左边界
                 obj.e_ny = 0;
+                obj.num_coeffs = obj.num_coeffs - 1;
             end
             if Rn
                 obj.f_ny = 0;
+                obj.num_coeffs = obj.num_coeffs - 1;
             end
             if Tn   % 没有上边界
                 obj.d_hx = 0;
+                obj.num_coeffs = obj.num_coeffs - 1;
             end
             if Bn
                 obj.c_hx = 0;
+                obj.num_coeffs = obj.num_coeffs - 1;
             end
         end
         

@@ -9,6 +9,7 @@ classdef Case2 < BasicCase
             % 调用父类构造函数
             obj@BasicCase(idx, xl, xr, yl, yt, H_max, N_max);
             % 应用边界条件
+            obj.num_coeffs = 6;
             obj.apply_boundaries(Ln, Rn, Tn, Bn);
             
             suffix = ['_' num2str(idx)];
@@ -21,29 +22,13 @@ classdef Case2 < BasicCase
             % 线性项
             syms y real
             obj.A_y_P = 0.5 * obj.mu_0 * obj.mu_r * obj.J_z * y^2;
+            
+            obj.coeffs_exists = [~Bn; ~Bn; ~Tn; ~Tn; ~Ln; ~Rn];
         end
         
         function regions = gen_solution_func(obj)
             syms x y
             
-            
-            % 构造符号求和
-            %{
-            % 沿 x 方向 A_z
-            A_zx_expr(x,y) = (obj.yt - y) * obj.c_0x + (y - obj.yl) * obj.d_0x + ...
-                symsum( ...
-                ((obj.c_hx / obj.beta_h) * sinh(obj.beta_h * (obj.yt - y)) / sinh(obj.beta_h * obj.tau_y) + ...
-                (obj.d_hx / obj.beta_h) * sinh(obj.beta_h * (y - obj.yl)) / sinh(obj.beta_h * obj.tau_y)) .* ...
-                cos(obj.beta_h * (x - obj.xl)), ...
-                obj.h, 1, obj.H_max);
-            
-            % 沿 y 方向 A_z
-            A_zy_expr(x,y) = -symsum( ...
-                ((obj.e_ny / obj.lambda_n) .* cosh(obj.lambda_n * (x - obj.xl)) ./ sinh(obj.lambda_n * obj.tau_x) - ...
-                (obj.f_ny / obj.lambda_n) .* cosh(obj.lambda_n * (obj.xr - x)) ./ sinh(obj.lambda_n * obj.tau_x)) .* ...
-                sin(obj.lambda_n * (y - obj.yl)), ...
-                obj.n, 1, obj.N_max);
-            %}
             A_z = obj.A_zx_expr + obj.A_zy_expr;
             
             % 磁场分量
@@ -67,40 +52,89 @@ classdef Case2 < BasicCase
         % 设置系数方程
         function gen_coefficient_func(obj)
             syms x y
-            obj.eq_c0x = cell(1,4);
-            obj.eq_d0x = cell(1,4);
-            obj.eq_c_hx = cell(1,4);
-            obj.eq_d_hx = cell(1,4);
-            obj.eq_e_ny = cell(1,4);
-            obj.eq_f_ny = cell(1,4);
+            obj.eq_c0x = cell(1,6);
+            obj.eq_d0x = cell(1,6);
+            obj.eq_c_hx = cell(1,6);
+            obj.eq_d_hx = cell(1,6);
+            obj.eq_e_ny = cell(1,6);
+            obj.eq_f_ny = cell(1,6);
             
+            func_num = 1;
             % 符号方程封装
             suffix = ['_' num2str(obj.idx)];
             
-            for i = 1:length(obj.B_funcs)
-                c_hx_expr(x,y) = (2/obj.tau_x) * int(obj.B_funcs{i} .* cos(obj.beta_h*(x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
-                obj.eq_c_hx{i} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
-                
-                c_0x_expr(x,y) = (1/obj.tau_x) * int((1/obj.tau_y) * obj.B_funcs{i}, x, obj.xl, obj.xl + obj.tau_x);
-                obj.eq_e_ny = symfun(sym(['c_0x' suffix]), [x,y]) == c_0x_expr;
+            if ~obj.Bn
+                for i = 1:length(obj.B_funcs)
+                    if isempty(obj.B_funcs{i})
+                        obj.eq_c_hx{i} = [];
+                        obj.eq_c0x{i} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    c_hx_expr(x,y) = (2/obj.tau_x) * int(obj.B_funcs{i} .* cos(obj.beta_h*(x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
+                    obj.eq_c_hx{i} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
+                    
+                    c_0x_expr(x,y) = (1/obj.tau_x) * int((1/obj.tau_y) * obj.B_funcs{i}, x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
+                    obj.eq_c0x{i} = symfun(sym(['c_0x' suffix]), [x,y]) == c_0x_expr;
+                    
+                end
+                func_num = func_num + 1;
+                obj.BCfuncs_loc_map(:,obj.bottoms(1)) = [2,func_num];
+                func_num = func_num + 1;
+            else
+                func_num = func_num + 1;
             end
             
-            for i = 1:length(obj.T_funcs)
-                d_hx_expr(x,y) = (2/obj.tau_x) * int(obj.T_funcs{i} .* cos(obj.beta_h*(x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
-                obj.eq_d_hx{i} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
-                
-                d_0x_expr(x,y) = (1/obj.tau_x) * int((1/obj.tau_y) * obj.T_funcs{i}, x, obj.xl, obj.xl + obj.tau_x);
-                obj.eq_f_ny{i} = symfun(sym(['d_0x' suffix]), [x,y]) == d_0x_expr;
+            if ~obj.Tn
+                for i = 1:length(obj.T_funcs)
+                    if isempty(obj.T_funcs{i})
+                        obj.eq_d_hx{i} = [];
+                        obj.eq_d0x{i} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    d_hx_expr(x,y) = (2/obj.tau_x) * int(obj.T_funcs{i} .* cos(obj.beta_h*(x - obj.xl)), x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
+                    obj.eq_d_hx{i} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
+                    
+                    d_0x_expr(x,y) = (1/obj.tau_x) * int((1/obj.tau_y) * obj.T_funcs{i}, x, obj.xl, obj.xl + obj.tau_x,'Hold',true);
+                    obj.eq_d0x{i} = symfun(sym(['d_0x' suffix]), [x,y]) == d_0x_expr;
+                    
+                end
+                func_num = func_num + 1;
+                obj.BCfuncs_loc_map(:,obj.tops(1)) = [4,func_num];
+                func_num = func_num + 1;
+            else
+                func_num = func_num + 1;
             end
             
-            for i = 1:length(obj.L_funcs)
-                e_ny_expr(x,y) = (2/obj.tau_y) * int(obj.L_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
-                obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
+            if ~obj.Ln
+                for i = 1:length(obj.L_funcs)
+                    if isempty(obj.L_funcs{i})
+                        obj.eq_e_ny{i} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    e_ny_expr(x,y) = (2/obj.tau_y) * int(obj.L_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
+                    obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
+                end
+                left_idx = obj.lefts(1);
+                obj.BCfuncs_loc_map(:,left_idx) = [5,func_num];
+                func_num = func_num + 1;
+            else
+                func_num = func_num + 1;
             end
             
-            for i = 1:length(obj.R_funcs)
-                f_ny_expr(x,y) = (2/obj.tau_y) * int(obj.R_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
-                obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;
+            if ~obj.Rn
+                for i = 1:length(obj.R_funcs)
+                    if isempty(obj.R_funcs{i})
+                        obj.eq_f_ny{i} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    f_ny_expr(x,y) = (2/obj.tau_y) * int(obj.R_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
+                    obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;
+                end
+                right_idx = obj.rights(1);
+                obj.BCfuncs_loc_map(:,right_idx) = [6,func_num];
+                func_num = func_num + 1;
+            else
+                func_num = func_num + 1;
             end
             
         end

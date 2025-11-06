@@ -3,30 +3,14 @@ classdef Case1 < BasicCase
         function obj = Case1(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max)
             % 调用父类构造函数
             obj@BasicCase(idx, xl, xr, yl, yt, H_max, N_max);
+            obj.num_coeffs = 4;
             obj.apply_boundaries(Ln, Rn, Tn, Bn);
+            
+            obj.coeffs_exists = [0; ~Bn; 0; ~Tn; ~Ln; ~Rn];
         end
         
         function gen_solution_func(obj)
             syms x y
-            % 应用边界条件
-            
-            % 构造符号求和
-            % 沿 x 方向的 A_z 分量
-            
-            %{
-            A_zx_expr(x,y) = symsum( ...
-                ( (obj.c_hx / obj.beta_h) * sinh(obj.beta_h * (obj.yt - y)) / sinh(obj.beta_h * obj.tau_y) ...
-                + (obj.d_hx / obj.beta_h) * sinh(obj.beta_h * (y - obj.yl)) / sinh(obj.beta_h * obj.tau_y) ) ...
-                * sin(obj.beta_h * (x - obj.xl)), ...
-                obj.h, 1, obj.H_max);
-            
-            % 沿 y 方向的 A_z 分量
-            A_zy_expr(x,y) = symsum( ...
-                ( (obj.e_ny / obj.lambda_n) * sinh(obj.lambda_n * (obj.xr - x)) / sinh(obj.lambda_n * obj.tau_x) ...
-                + (obj.f_ny / obj.lambda_n) * sinh(obj.lambda_n * (x - obj.xl)) / sinh(obj.lambda_n * obj.tau_x) ) ...
-                * sin(obj.lambda_n * (y - obj.yl)), ...
-                obj.n, 1, obj.N_max);
-            %}
             % 总的 A_z
             A_z(x,y) = obj.A_zx_expr + obj.A_zy_expr;
             
@@ -58,52 +42,101 @@ classdef Case1 < BasicCase
             obj.eq_e_ny = cell(1,6);
             obj.eq_f_ny = cell(1,6);
             
-            for i = 1:length(obj.B_funcs)
-                row = ceil(i/6);
-                col = mod(i+5,6)+1;
-                if isempty(obj.B_funcs{i})
-                    obj.eq_c_hx{row, col} = 0;
-                    continue; % 跳过为零的函数
+            func_num = 1;
+            
+            % c0 d0为空
+            obj.eq_c0x = cell(1,6);
+            func_num = func_num + 1;
+            rowk = 0;
+            if ~obj.Bn
+                for i = 1:length(obj.B_funcs)
+                    row = ceil(i/6);
+                    col = mod(i+5,6)+1;
+                    if isempty(obj.B_funcs{i})
+                        obj.eq_c_hx{row, col} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    obj.num_idx_hn(obj.idx, 1) = (col<=2 || col>=5) * 1 + obj.num_idx_hn(obj.idx, 1);
+                    obj.num_idx_hn(obj.idx, 2) = (col>=3 && col<=4) * 1 + obj.num_idx_hn(obj.idx, 2);
+                    % 对于分段函数的积分上下限，是对应的邻接区域的上下限，而不是当前区域的上下限
+                    % 首先找到对应临界区域
+                    bottom_idx = obj.bottoms(row);
+                    bottom_i = obj.all_regions{bottom_idx}.impl;  % 对应的top_i的对象的实现
+                    c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x,'Hold',true);
+                    obj.eq_c_hx{row, col} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
+                    
+                    if row ~= rowk
+                        obj.BCfuncs_loc_map(:,bottom_idx) = [2,func_num];
+                        func_num = func_num + 1;
+                        rowk = row;
+                    end
                 end
-                % 对于分段函数的积分上下限，是对应的邻接区域的上下限，而不是当前区域的上下限
-                % 首先找到对应临界区域
-                bottom_idx = obj.tops(row);
-                bottom_i = obj.all_regions{bottom_idx}.impl;  % 对应的top_i的对象的实现
-                c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x,'Hold',true);
-                
-                obj.eq_c_hx{row, col} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
+            else
+                func_num = func_num + 1;
             end
             
-            for i = 1:length(obj.T_funcs)
-                row = ceil(i/6);
-                col = mod(i+5,6)+1;
-                if isempty(obj.T_funcs{i})
-                    obj.eq_d_hx{row, col} = 0;
-                    continue; % 跳过为零的函数
+            obj.eq_d0x = cell(1,6);
+            func_num = func_num + 1;
+            
+            rowk = 0;
+            if ~obj.Tn
+                for i = 1:length(obj.T_funcs)
+                    row = ceil(i/6);
+                    col = mod(i+5,6)+1;
+                    if isempty(obj.T_funcs{i})
+                        obj.eq_d_hx{row, col} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    obj.num_idx_hn(obj.idx, 1) = (col<=2 || col>=5) * 1 + obj.num_idx_hn(obj.idx, 1);
+                    obj.num_idx_hn(obj.idx, 2) = (col>=3 && col<=4) * 1 + obj.num_idx_hn(obj.idx, 2);
+                    top_idx = obj.tops(row);
+                    top_i = obj.all_regions{top_idx}.impl;  % 对应的top_i的对象的实现
+                    d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x,'Hold',true);
+                    obj.eq_d_hx{row, col} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
+                    
+                    if row ~= rowk
+                        obj.BCfuncs_loc_map(:,top_idx) = [4,func_num];
+                        func_num = func_num + 1;
+                        rowk = row;
+                    end
                 end
-                top_idx = obj.tops(row);
-                top_i = obj.all_regions{top_idx}.impl;  % 对应的top_i的对象的实现
-                d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x,'Hold',true);
-                obj.eq_d_hx{row, col} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
+            else
+                func_num = func_num + 1;
             end
             
-            for i = 1:length(obj.L_funcs)
-                if isempty(obj.L_funcs{i})
-                    obj.eq_e_ny{i} = 0;
-                    continue; % 跳过为零的函数
+            if ~obj.Ln
+                for i = 1:length(obj.L_funcs)
+                    if isempty(obj.L_funcs{i})
+                        obj.eq_e_ny{i} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    e_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.L_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
+                    obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
                 end
-                e_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.L_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
-                obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
+                left_idx = obj.lefts(1);
+                obj.BCfuncs_loc_map(:,left_idx) = [5,func_num];
+                func_num = func_num + 1;
+            else
+                func_num = func_num + 1;
             end
             
-            for i = 1:length(obj.R_funcs)
-                if isempty(obj.L_funcs{i})
-                    obj.eq_f_ny{i} = 0;
-                    continue; % 跳过为零的函数
+            if ~obj.Rn
+                for i = 1:length(obj.R_funcs)
+                    if isempty(obj.R_funcs{i})
+                        obj.eq_f_ny{i} = [];
+                        continue; % 跳过为零的函数
+                    end
+                    f_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.R_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
+                    obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;
                 end
-                f_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.R_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
-                obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;
+                right_idx = obj.rights(1);
+                obj.BCfuncs_loc_map(:,right_idx) = [6,func_num];
+                func_num = func_num + 1;
+            else
+                func_num = func_num + 1;
             end
+            
+            
             
             % 这里直接改变了这个区域的边界方程情况，无需再进行返回值传递
             

@@ -7,19 +7,29 @@ classdef Boundarys < handle
         bc_type
         impl
         case_impl
+        
+        % 这个区域邻接方程的位置
+        BCfuncs_loc % 第一列代表当前这个邻接区域对应是上（1）下（2）还是左（3）右（4），第二列是方程位置
+        BCfuncs_loc_map % 记录<idx,is_cal>记录邻接区域的idx与
+        all_region_num % 所有的区域数量
+        
+        region2edge % 储存区域到边界的映射，索引代表区域，值代表边界，其中1 2 3 4 5 6分别代表c0 c d0 d e f
     end
     
     methods
-        function obj = Boundarys(impl)
+        function obj = Boundarys(impl, all_region_num)
             obj.impl = impl;
             obj.case_impl = impl.impl;  % 这个指的是如BTAir类的一个实例
+            
+            obj.all_region_num = all_region_num;
+            obj.BCfuncs_loc = zeros(2, all_region_num);     % 索引是区域编号，值代表这个区域方程在funcs方程中的位置
         end
         
         
         function cal_BC(obj, Ln, Rn, Tn, Bn)
             syms x y real
             
-            % 根据 bc_type 生成边界方程
+            BCfuncs_loc_num = 1;    % 用于记录当前边界函数在整体方程组中的位置
             
             switch obj.bc_type
                 case BC_TYPE.BBAA
@@ -32,13 +42,14 @@ classdef Boundarys < handle
                         for i = 1:length(obj.top)
                             % 每次取一个，计算他的边界函数
                             top_idx = obj.top(i);
-                            [coeffs, eqT] = obj.genBB(top_idx, 1); % 这里取得的eqT是一个cell数组，其中的每一项是边界方程的一部分，例如c这部分，
+                            [~, eqT] = obj.genBB(top_idx, 1); % 这里取得的eqT是一个cell数组，其中的每一项是边界方程的一部分，例如c这部分，
                             for j = 1:length(eqT)
                                 eqT{j} = subs(eqT{j}, y, obj.case_impl.yt);
                             end
                             % 如果是分段函数，传入的T_funcs将会是一个更长的一维cell数组
                             obj.case_impl.T_funcs = [obj.case_impl.T_funcs, eqT];     % 这样子就成为了一个一维数组，每次传入其中的一行
-                            obj.case_impl.T_coeffs = [obj.case_impl.T_coeffs ,coeffs];
+                            obj.BCfuncs_loc(:,top_idx) = [1; BCfuncs_loc_num];
+                            BCfuncs_loc_num = BCfuncs_loc_num + 1;
                         end
                     else
                         obj.case_impl.T_funcs = {};
@@ -50,13 +61,14 @@ classdef Boundarys < handle
                         for i = 1:length(obj.bottom)
                             % 每次取一个，计算他的边界函数
                             bottom_idx = obj.bottom(i);
-                            [coeffs, eqB] = obj.genBB(bottom_idx, 1); % 这里取得的eqT是一个cell数组，其中的每一项是边界方程的一部分，例如c这部分，
+                            [~, eqB] = obj.genBB(bottom_idx, 1); % 这里取得的eqT是一个cell数组，其中的每一项是边界方程的一部分，例如c这部分，
                             for j = 1:length(eqB)
                                 eqB{j} = subs(eqB{j}, y, obj.case_impl.yl);
                             end
                             % 如果是分段函数，传入的T_funcs将会是一个更长的一维cell数组
                             obj.case_impl.B_funcs = [obj.case_impl.B_funcs, eqB];     % 这样子就成为了一个一维数组，每次传入其中的一行
-                            obj.case_impl.B_coeffs = [obj.case_impl.B_coeffs ,coeffs];
+                            obj.BCfuncs_loc(:,bottom_idx) = [2; BCfuncs_loc_num];
+                            BCfuncs_loc_num = BCfuncs_loc_num + 1;
                         end
                     else
                         obj.case_impl.B_funcs = {};
@@ -73,7 +85,8 @@ classdef Boundarys < handle
                             eqL{i} = subs(eqL{i}, x, obj.case_impl.xl);
                         end
                         obj.case_impl.L_funcs = eqL;
-                        obj.case_impl.L_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,left_idx) = [3;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.L_funcs = {};
                         obj.case_impl.L_coeffs = {};
@@ -89,7 +102,8 @@ classdef Boundarys < handle
                             eqR{i} = subs(eqR{i}, x, obj.case_impl.xr);
                         end
                         obj.case_impl.R_funcs = eqR;
-                        obj.case_impl.R_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,right_idx) = [4;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.R_funcs = {};
                         obj.case_impl.R_coeffs = {};
@@ -105,7 +119,8 @@ classdef Boundarys < handle
                             eqT{i} = subs(eqT{i}, y, obj.case_impl.yt);
                         end
                         obj.case_impl.T_funcs = eqT;
-                        obj.case_impl.T_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,top_idx) = [1;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.T_funcs = {};
                         obj.case_impl.T_coeffs = {};
@@ -121,7 +136,8 @@ classdef Boundarys < handle
                             eqB{i} = subs(eqB{i}, y, obj.case_impl.yl);
                         end
                         obj.case_impl.B_funcs = eqB;
-                        obj.case_impl.B_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,bottom_idx) = [2;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.B_funcs = {};
                         obj.case_impl.B_coeffs = {};
@@ -137,7 +153,8 @@ classdef Boundarys < handle
                             eqL{i} = subs(eqL{i}, x, obj.case_impl.xl);
                         end
                         obj.case_impl.L_funcs = eqL;
-                        obj.case_impl.L_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,left_idx) = [3;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.L_funcs = {};
                         obj.case_impl.L_coeffs = {};
@@ -153,7 +170,8 @@ classdef Boundarys < handle
                             eqR{i} = subs(eqR{i}, x, obj.case_impl.xr);
                         end
                         obj.case_impl.R_funcs = eqR;
-                        obj.case_impl.R_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,right_idx) = [4;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.R_funcs = {};
                         obj.case_impl.R_coeffs = {};
@@ -169,7 +187,8 @@ classdef Boundarys < handle
                             eqT{i} = subs(eqT{i}, y, obj.case_impl.yt);
                         end
                         obj.case_impl.T_funcs = eqT;
-                        obj.case_impl.T_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,top_idx) = [1;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.T_funcs = {};
                         obj.case_impl.T_coeffs = {};
@@ -184,7 +203,8 @@ classdef Boundarys < handle
                             eqB{i} = subs(eqB{i}, y, obj.case_impl.yl);
                         end
                         obj.case_impl.B_funcs = eqB;
-                        obj.case_impl.B_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,bottom_idx) = [2;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.B_funcs = {};
                         obj.case_impl.B_coeffs = {};
@@ -199,7 +219,8 @@ classdef Boundarys < handle
                             eqL{i} = subs(eqL{i}, x, obj.case_impl.xl);
                         end
                         obj.case_impl.L_funcs = eqL;
-                        obj.case_impl.L_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,left_idx) = [3;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.L_funcs = {};
                         obj.case_impl.L_coeffs = {};
@@ -214,7 +235,8 @@ classdef Boundarys < handle
                             eqR{i} = subs(eqR{i}, x, obj.case_impl.xr);
                         end
                         obj.case_impl.R_funcs = eqR;
-                        obj.case_impl.R_coeffs = coeffs;
+                        obj.BCfuncs_loc(:,right_idx) = [4;BCfuncs_loc_num];
+                        BCfuncs_loc_num = BCfuncs_loc_num + 1;
                     else
                         obj.case_impl.R_funcs = {};
                         obj.case_impl.R_coeffs = {};
@@ -240,12 +262,12 @@ classdef Boundarys < handle
                 if has_cd0x
                     % 首先处理c_0x
                     F = subs(edge_impl.A_zx_expr, {edge_impl.c_hx, edge_impl.d_hx, edge_impl.c_0x, edge_impl.d_0x}, {0, 0, 1, 0});    % 只留下c_0x
-                    eqF{5} = F;
-                    coeffs{5} = edge_impl.c_0x;
+                    eqF{1} = F;
+                    coeffs{1} = edge_impl.c_0x;
                     
                     F = subs(edge_impl.A_zx_expr, {edge_impl.c_hx, edge_impl.d_hx, edge_impl.c_0x, edge_impl.d_0x}, {0, 0, 0, 1});    % 只留下c_0x
-                    eqF{6} = F;
-                    coeffs{6} = edge_impl.d_0x;
+                    eqF{3} = F;
+                    coeffs{3} = edge_impl.d_0x;
                 end
                 
                 if edge_region.Bn == 0  % 相邻区域的这个边界上有c_hx
@@ -255,26 +277,26 @@ classdef Boundarys < handle
                     if has_cd0x
                         F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
                     end
-                    eqF{1} = F1;
-                    coeffs{1} = edge_impl.c_hx;
+                    eqF{2} = F1;
+                    coeffs{2} = edge_impl.c_hx;
                 end
                 if edge_region.Tn == 0
                     F1 = subs(edge_impl.A_zx_expr, {edge_impl.c_hx, edge_impl.d_hx}, {0, 1});
                     if has_cd0x
                         F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
                     end
-                    eqF{2} = F1;
-                    coeffs{2} = edge_impl.d_hx;
+                    eqF{4} = F1;
+                    coeffs{4} = edge_impl.d_hx;
                 end
                 if edge_region.Ln == 0
                     F1 = subs(edge_impl.A_zy_expr, {edge_impl.e_ny, edge_impl.f_ny}, {1, 0});
-                    eqF{3} = F1;
-                    coeffs{3} = edge_impl.e_ny;
+                    eqF{5} = F1;
+                    coeffs{5} = edge_impl.e_ny;
                 end
                 if edge_region.Rn == 0
                     F1 = subs(edge_impl.A_zy_expr, {edge_impl.e_ny, edge_impl.f_ny}, {0, 1});
-                    eqF{4} = F1;
-                    coeffs{4} = edge_impl.f_ny;
+                    eqF{6} = F1;
+                    coeffs{6} = edge_impl.f_ny;
                 end
                 
                 
@@ -303,12 +325,12 @@ classdef Boundarys < handle
                     F1 = obj.getBB_func(edge_impl, 1, cd_or_ef);
                     % 首先处理c_0x
                     F = subs(F1, {edge_impl.c_hx, edge_impl.d_hx, edge_impl.c_0x, edge_impl.d_0x}, {0, 0, 1, 0});    % 只留下c_0x
-                    eqF{5} = F;
-                    coeffs{5} = edge_impl.c_0x;
+                    eqF{1} = F;
+                    coeffs{1} = edge_impl.c_0x;
                     
                     F = subs(F1, {edge_impl.c_hx, edge_impl.d_hx, edge_impl.c_0x, edge_impl.d_0x}, {0, 0, 0, 1});    % 只留下c_0x
-                    eqF{6} = F;
-                    coeffs{6} = edge_impl.d_0x;
+                    eqF{3} = F;
+                    coeffs{3} = edge_impl.d_0x;
                 end
                 if edge_region.Bn == 0  % 相邻区域的这个边界上有c_hx
                     % 如果有c_0x，说明这个需要考虑分段函数
@@ -318,8 +340,8 @@ classdef Boundarys < handle
                     if has_cd0x
                         F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
                     end
-                    eqF{1} = F1;
-                    coeffs{1} = edge_impl.c_hx;
+                    eqF{2} = F1;
+                    coeffs{2} = edge_impl.c_hx;
                 end
                 if edge_region.Tn == 0  % 相邻区域的这个边界上有d_hx
                     % 如果有c_0x，说明这个需要考虑分段函数
@@ -329,21 +351,21 @@ classdef Boundarys < handle
                     if has_cd0x
                         F1 = subs(F1, {edge_impl.c_0x, edge_impl.d_0x}, {0, 0});    % 如果有c_0x,d_0x的话，置为0
                     end
-                    eqF{2} = F1;
-                    coeffs{2} = edge_impl.d_hx;
+                    eqF{4} = F1;
+                    coeffs{4} = edge_impl.d_hx;
                 end
                 if edge_region.Ln == 0
                     F1 = obj.getBB_func(edge_impl, 2, cd_or_ef);
                     F = subs(F1, {edge_impl.e_ny, edge_impl.f_ny}, {1,0});
-                    eqF{3} = F;
-                    coeffs{3} = edge_impl.e_ny;
+                    eqF{5} = F;
+                    coeffs{5} = edge_impl.e_ny;
                 end
                 
                 if edge_region.Rn == 0
                     F1 = obj.getBB_func(edge_impl, 2, cd_or_ef);
                     F = subs(F1, {edge_impl.e_ny, edge_impl.f_ny}, {0,1});
-                    eqF{4} = F;
-                    coeffs{4} = edge_impl.f_ny;
+                    eqF{6} = F;
+                    coeffs{6} = edge_impl.f_ny;
                 end
                 
                 
