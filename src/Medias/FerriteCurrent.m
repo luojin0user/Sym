@@ -1,8 +1,8 @@
 classdef FerriteCurrent < Case2
     methods
-        function obj = FerriteCurrent(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max)
+        function obj = FerriteCurrent(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max, mu_r, J_r)
             % 调用父类构造函数
-            obj@Case2(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max);
+            obj@Case2(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max, mu_r, J_r);
             syms x y real
             %{
         

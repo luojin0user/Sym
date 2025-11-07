@@ -1,8 +1,8 @@
 classdef AlleyAir < Case1
     methods
-        function obj = AlleyAir(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max)
+        function obj = AlleyAir(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max, mu_r)
             % 调用父类构造函数
-            obj@Case1(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max);
+            obj@Case1(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max, mu_r);
             syms x y real
             %{
             obj.A_zx_expr = symfun( symsum( ...

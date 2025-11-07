@@ -19,7 +19,7 @@ classdef Region < handle
     end
     
     methods
-        function obj = Region(idx, type, xl, xr, yl, yt, bc_type, top, bottom, left, right, H_max, N_max, all_regions_num)
+        function obj = Region(idx, type, xl, xr, yl, yt, bc_type, top, bottom, left, right, ES_regions, H_max, N_max, mu_r, J_r, all_regions_num)
             % 修改可见边信息
             % L/R/T/B 为 bool 值，表示边界是否存在，如果为True，说明这个边界不存在
             obj.Ln = isempty(left);
@@ -33,21 +33,24 @@ classdef Region < handle
             
             switch type
                 case CaseType.AlleyAir
-                    obj.impl = AlleyAir(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max);
+                    obj.impl = AlleyAir(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max, mu_r);
                 case CaseType.BTAir % NormalAir
-                    obj.impl = BTAir(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max);
+                    obj.impl = BTAir(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max, mu_r);
                 case CaseType.NormalAir
-                    obj.impl = NormalAir(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max);
+                    obj.impl = NormalAir(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max, mu_r);
                 case CaseType.FerriteCurrent
-                    obj.impl = FerriteCurrent(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max);
+                    obj.impl = FerriteCurrent(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max, mu_r, J_r);
                 case CaseType.Aluminum
-                    obj.impl = Aluminum(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max);
+                    obj.impl = Aluminum(idx, xl, xr, yl, yt, obj.Ln, obj.Rn, obj.Tn, obj.Bn, H_max, N_max, mu_r);
                 otherwise
                     error('Unsupported case type');
             end
             
             obj.impl.num_idx_hn = zeros(all_regions_num, 2, 'uint32');
             obj.impl.BCfuncs_loc_map = zeros(2, all_regions_num);
+            obj.impl.ES_regions = false(1, all_regions_num);
+            obj.impl.ES_regions(ES_regions) = true;
+            
             obj.all_regions_num = all_regions_num;
             obj.boundarys = Boundarys(obj, all_regions_num);
             obj.set_boundary(top, bottom, left, right, bc_type);
@@ -83,7 +86,7 @@ classdef Region < handle
         
         
         % 计算这个区域系数的方程，这里是在所有区域内部方程计算完成之后调用的
-        function [funcs, BCfuncs_loc_map] = gen_region_coefficient_func(obj, all_regions)
+        function [funcs, BCfuncs_loc_map, ESfuncs] = gen_region_coefficient_func(obj, all_regions)
             obj.all_regions = all_regions;
             
             obj.impl.all_regions = all_regions;
@@ -94,6 +97,8 @@ classdef Region < handle
             % 收集系数方程及其对应的值，上下一一对应
             funcs = [obj.impl.eq_c0x; obj.impl.eq_c_hx; obj.impl.eq_d0x; obj.impl.eq_d_hx; obj.impl.eq_e_ny; obj.impl.eq_f_ny];
             BCfuncs_loc_map = obj.impl.BCfuncs_loc_map;
+            ESfuncs = obj.impl.eq_ES;
+            % ESfuncs = ESfuncs(~cellfun(@isempty, ESfuncs));
         end
         
     end

@@ -31,6 +31,7 @@ classdef Boundarys < handle
             
             BCfuncs_loc_num = 1;    % 用于记录当前边界函数在整体方程组中的位置
             
+            
             switch obj.bc_type
                 case BC_TYPE.BBAA
                     % 这里需要注意可能出现的分段函数的形式，如果出现分段函数，一定是B连续，所以需要
@@ -50,6 +51,13 @@ classdef Boundarys < handle
                             obj.case_impl.T_funcs = [obj.case_impl.T_funcs, eqT];     % 这样子就成为了一个一维数组，每次传入其中的一行
                             obj.BCfuncs_loc(:,top_idx) = [1; BCfuncs_loc_num];
                             BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                            
+                            % 处理ES，如果这个边界是ES
+                            if obj.case_impl.ES_regions(top_idx)
+                                edge_impl = obj.impl.all_regions{top_idx}.impl;
+                                ES = subs(edge_impl.B_x_P, y, obj.case_impl.yt);
+                                obj.case_impl.T_ESfuncs = [obj.case_impl.T_ESfuncs; ES];
+                            end
                         end
                     else
                         obj.case_impl.T_funcs = {};
@@ -69,6 +77,13 @@ classdef Boundarys < handle
                             obj.case_impl.B_funcs = [obj.case_impl.B_funcs, eqB];     % 这样子就成为了一个一维数组，每次传入其中的一行
                             obj.BCfuncs_loc(:,bottom_idx) = [2; BCfuncs_loc_num];
                             BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                            
+                            % 处理ES，如果这个边界是ES
+                            if obj.case_impl.ES_regions(bottom_idx)
+                                edge_impl = obj.impl.all_regions{bottom_idx}.impl;
+                                ES = subs(edge_impl.B_x_P, y, obj.case_impl.yl);
+                                obj.case_impl.B_ESfuncs = [obj.case_impl.B_ESfuncs; ES];
+                            end
                         end
                     else
                         obj.case_impl.B_funcs = {};
@@ -87,6 +102,14 @@ classdef Boundarys < handle
                         obj.case_impl.L_funcs = eqL;
                         obj.BCfuncs_loc(:,left_idx) = [3;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(left_idx)
+                            edge_impl = obj.impl.all_regions{left_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, x, obj.case_impl.xl);
+                            ES = ES * obj.case_impl.lambda_n;
+                            obj.case_impl.L_ESfuncs = [obj.case_impl.L_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.L_funcs = {};
                         obj.case_impl.L_coeffs = {};
@@ -104,6 +127,14 @@ classdef Boundarys < handle
                         obj.case_impl.R_funcs = eqR;
                         obj.BCfuncs_loc(:,right_idx) = [4;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(right_idx)
+                            edge_impl = obj.impl.all_regions{right_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, x, obj.case_impl.xr);
+                            ES = ES * obj.case_impl.lambda_n;
+                            obj.case_impl.R_ESfuncs = [obj.case_impl.R_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.R_funcs = {};
                         obj.case_impl.R_coeffs = {};
@@ -121,6 +152,14 @@ classdef Boundarys < handle
                         obj.case_impl.T_funcs = eqT;
                         obj.BCfuncs_loc(:,top_idx) = [1;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(top_idx)
+                            edge_impl = obj.impl.all_regions{top_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, y, obj.case_impl.yt);
+                            ES = ES * obj.case_impl.beta_h;
+                            obj.case_impl.T_ESfuncs = [obj.case_impl.T_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.T_funcs = {};
                         obj.case_impl.T_coeffs = {};
@@ -138,6 +177,14 @@ classdef Boundarys < handle
                         obj.case_impl.B_funcs = eqB;
                         obj.BCfuncs_loc(:,bottom_idx) = [2;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(bottom_idx)
+                            edge_impl = obj.impl.all_regions{bottom_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, y, obj.case_impl.yl);
+                            ES = ES * obj.case_impl.beta_h;
+                            obj.case_impl.B_ESfuncs = [obj.case_impl.B_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.B_funcs = {};
                         obj.case_impl.B_coeffs = {};
@@ -155,6 +202,14 @@ classdef Boundarys < handle
                         obj.case_impl.L_funcs = eqL;
                         obj.BCfuncs_loc(:,left_idx) = [3;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(left_idx)
+                            edge_impl = obj.impl.all_regions{left_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, x, obj.case_impl.xl);
+                            ES = ES * obj.case_impl.lambda_n;
+                            obj.case_impl.L_ESfuncs = [obj.case_impl.L_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.L_funcs = {};
                         obj.case_impl.L_coeffs = {};
@@ -172,6 +227,14 @@ classdef Boundarys < handle
                         obj.case_impl.R_funcs = eqR;
                         obj.BCfuncs_loc(:,right_idx) = [4;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(right_idx)
+                            edge_impl = obj.impl.all_regions{right_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, x, obj.case_impl.xr);
+                            ES = ES * obj.case_impl.lambda_n;
+                            obj.case_impl.R_ESfuncs = [obj.case_impl.R_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.R_funcs = {};
                         obj.case_impl.R_coeffs = {};
@@ -184,11 +247,20 @@ classdef Boundarys < handle
                         top_idx = obj.top(1);
                         [coeffs, eqT] = obj.genAA(top_idx);
                         for i = 1:length(eqT)
+                            eqT{i} = eqT{i} * obj.case_impl.beta_h;  % 乘以 beta_h
                             eqT{i} = subs(eqT{i}, y, obj.case_impl.yt);
                         end
                         obj.case_impl.T_funcs = eqT;
                         obj.BCfuncs_loc(:,top_idx) = [1;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(top_idx)
+                            edge_impl = obj.impl.all_regions{top_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, y, obj.case_impl.yt);
+                            ES = ES * obj.case_impl.beta_h;
+                            obj.case_impl.T_ESfuncs = [obj.case_impl.T_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.T_funcs = {};
                         obj.case_impl.T_coeffs = {};
@@ -200,11 +272,20 @@ classdef Boundarys < handle
                         
                         [coeffs, eqB] = obj.genAA(bottom_idx);
                         for i = 1:length(eqB)
+                            eqB{i} = eqB{i} * obj.case_impl.beta_h;  % 乘以 beta_h
                             eqB{i} = subs(eqB{i}, y, obj.case_impl.yl);
                         end
                         obj.case_impl.B_funcs = eqB;
                         obj.BCfuncs_loc(:,bottom_idx) = [2;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(bottom_idx)
+                            edge_impl = obj.impl.all_regions{bottom_idx}.impl;
+                            ES = subs(edge_impl.A_y_P, y, obj.case_impl.yl);
+                            ES = ES * obj.case_impl.beta_h;
+                            obj.case_impl.B_ESfuncs = [obj.case_impl.B_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.B_funcs = {};
                         obj.case_impl.B_coeffs = {};
@@ -221,6 +302,13 @@ classdef Boundarys < handle
                         obj.case_impl.L_funcs = eqL;
                         obj.BCfuncs_loc(:,left_idx) = [3;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(left_idx)
+                            edge_impl = obj.impl.all_regions{left_idx}.impl;
+                            ES = subs(edge_impl.B_y_P, x, obj.case_impl.xl);
+                            obj.case_impl.L_ESfuncs = [obj.case_impl.L_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.L_funcs = {};
                         obj.case_impl.L_coeffs = {};
@@ -231,12 +319,19 @@ classdef Boundarys < handle
                         right_idx = obj.right(1);
                         
                         [coeffs, eqR] = obj.genBB(right_idx, 2);
-                        for i = 1:length(eqR)
+                        for i = 1:length(eqL)
                             eqR{i} = subs(eqR{i}, x, obj.case_impl.xr);
                         end
                         obj.case_impl.R_funcs = eqR;
                         obj.BCfuncs_loc(:,right_idx) = [4;BCfuncs_loc_num];
                         BCfuncs_loc_num = BCfuncs_loc_num + 1;
+                        
+                        % 处理ES，如果这个边界是ES
+                        if obj.case_impl.ES_regions(right_idx)
+                            edge_impl = obj.impl.all_regions{right_idx}.impl;
+                            ES = subs(edge_impl.B_y_P, x, edge_impl.xr);
+                            obj.case_impl.R_ESfuncs = [obj.case_impl.R_ESfuncs; ES];
+                        end
                     else
                         obj.case_impl.R_funcs = {};
                         obj.case_impl.R_coeffs = {};
@@ -299,6 +394,7 @@ classdef Boundarys < handle
                     coeffs{6} = edge_impl.f_ny;
                 end
                 
+                % 处理ES
                 
                 % G = obj.impl.all_regions{right_idx}.region_func{1};     % region_func的第1个就是对应的Az
             end
@@ -393,6 +489,17 @@ classdef Boundarys < handle
                     F1 = edge_impl.B_y_y;
                 end
             end
+        end
+        
+        function cal_ES(obj, Ln, Rn, Tn, Bn)
+            switch obj.bc_type
+                case BC_TYPE.BBAA
+                    
+                case BC_TYPE.AAAA
+                case BC_TYPE.AABB
+            end
+            
+            
         end
     end
 end

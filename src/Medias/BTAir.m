@@ -1,8 +1,8 @@
 classdef BTAir < Case1
     methods
-        function obj = BTAir(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max)
+        function obj = BTAir(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max, mu_r)
             % 调用父类构造函数
-            obj@Case1(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max);
+            obj@Case1(idx, xl, xr, yl, yt, Ln, Rn, Tn, Bn, H_max, N_max, mu_r);
             syms x y real
             %{
             

@@ -66,6 +66,10 @@ classdef BasicCase < handle
         eq_A_z
         eq_B_x
         
+        eq_A_y_P
+        eq_B_x_P
+        eq_B_y_P
+        
         B_x_x
         B_x_y
         B_y_x
@@ -83,11 +87,19 @@ classdef BasicCase < handle
         coeffs_exists      % 当前区域的参数情况，1x6的数组，代表c0 c d0 d e f
         BCfuncs_loc_map   % 边界方程的位置，索引代表区域，值1代表边界方程的类型（2=c=B，4=d=T，5=e=L，6=f=R），值2代表方程索引
         
+        T_ESfuncs
+        B_ESfuncs
+        L_ESfuncs
+        R_ESfuncs
+        
+        ES_regions          % 所有有源项的集合
+        eq_ES
+        
     end
     
     methods
         % 构造函数
-        function obj = BasicCase(idx, xl, xr, yl, yt, H_max, N_max)
+        function obj = BasicCase(idx, xl, xr, yl, yt, H_max, N_max, mu_r)
             syms x y
             if nargin < 1
                 error('必须指定 idx');
@@ -123,7 +135,8 @@ classdef BasicCase < handle
             % obj.n = N_max;
             
             % 定义符号变量
-            syms mu_r 'real'
+            
+            
             % syms H_max N_max 'integer'
             
             % 定义符号函数
@@ -131,7 +144,11 @@ classdef BasicCase < handle
             obj.lambda_n = obj.n * pi / obj.tau_y;  % lambda 是关于 n 的函数
             
             % 直接赋值给对象属性
+            syms mu_0 'real'
+            obj.mu_0 = 4*pi*1e-7;
+            % obj.mu_r = sym(['mu_r' suffix], 'real');
             obj.mu_r = mu_r;
+            
             obj.H_max = H_max;
             obj.N_max = N_max;
             
