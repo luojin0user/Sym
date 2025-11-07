@@ -122,7 +122,7 @@ classdef AllRegions < handle
             BC_blocks = cell(obj.region_num, obj.region_num);
             N = obj.region_num;
             fprintf("开始计算BC矩阵，共%d个\n",N);
-            for i = 1:N
+            parfor i = 1:N
                 for j = 1:N
                     if i == j
                         BC_blocks{i,j} = [];    % 暂时置为空
@@ -206,7 +206,7 @@ classdef AllRegions < handle
             
             % 当前处理的行，这个函数只会处理一行
             % 这里记录的就是这个邻接区域对应的边界，其中c=B，d=T，e=L，f=R
-            edge_bc_loc = idx_case.BCfuncs_loc_map(:,edge_idx);  % 对应这个邻接区域的方程的种类，2c 4d 5e 6f
+            edge_bc_loc = BC_loc{idx}(:,edge_idx);  % 对应这个邻接区域的方程的种类，2c 4d 5e 6f
             i = find(row_exists == edge_bc_loc(1));  % 找到这个边界函数对应的下标
             
             % 行数
