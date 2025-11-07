@@ -1,10 +1,5 @@
-C = {[], 1:3, [], 'abc', [], [5 6]}; % 1x6 cell
-
-% 找到非空 cell 的逻辑索引
-non_empty_logical = ~cellfun(@isempty, C);
-
-% 得到非空 cell 的索引
-non_empty_idx = find(non_empty_logical);
-
-disp(non_empty_logical)
-disp(non_empty_idx)
+syms n_3 n_6 y real
+f_ny_3 = int(-(n_3*sin((pi*n_3*(y - 100))/40)*sin((pi*n_6*(y - 100))/40))/(n_6*sinh((pi*n_6)/2)), y, 100, 140, 'Hold', true)/20
+f_ny_3 = subs(f_ny_3, {n_3,n_6}, {1,1});
+f_ny_3 = release(f_ny_3);
+A = vpa(f_ny_3);

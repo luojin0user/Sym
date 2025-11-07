@@ -82,7 +82,7 @@ classdef BasicCase < handle
         num_coeffs      % 这个区域的参数个数
         coeffs_exists      % 当前区域的参数情况，1x6的数组，代表c0 c d0 d e f
         BCfuncs_loc_map   % 边界方程的位置，索引代表区域，值1代表边界方程的类型（2=c=B，4=d=T，5=e=L，6=f=R），值2代表方程索引
-        edge_idx_
+        
     end
     
     methods

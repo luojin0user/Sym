@@ -13,16 +13,19 @@ classdef Region < handle
         Rn
         Tn
         Bn
+        
+        all_regions_num
+        all_edge_regions    % 所有邻接区域的数组，索引代表是否有这个邻接区域
     end
     
     methods
         function obj = Region(idx, type, xl, xr, yl, yt, bc_type, top, bottom, left, right, H_max, N_max, all_regions_num)
             % 修改可见边信息
             % L/R/T/B 为 bool 值，表示边界是否存在，如果为True，说明这个边界不存在
-            obj.Ln = left(1)  == 0;
-            obj.Rn = right(1) == 0;
-            obj.Tn = top(1)   == 0;
-            obj.Bn = bottom(1)== 0;
+            obj.Ln = isempty(left);
+            obj.Rn = isempty(right);
+            obj.Tn = isempty(top);
+            obj.Bn = isempty(bottom);
             
             obj.case_type = type;
             obj.idx = idx;
@@ -44,7 +47,8 @@ classdef Region < handle
             end
             
             obj.impl.num_idx_hn = zeros(all_regions_num, 2, 'uint32');
-            
+            obj.impl.BCfuncs_loc_map = zeros(2, all_regions_num);
+            obj.all_regions_num = all_regions_num;
             obj.boundarys = Boundarys(obj, all_regions_num);
             obj.set_boundary(top, bottom, left, right, bc_type);
         end
@@ -64,6 +68,10 @@ classdef Region < handle
             obj.impl.lefts = left;
             obj.impl.rights = right;
             
+            
+            regions = [top, bottom, left, right];
+            obj.all_edge_regions = false(obj.all_regions_num, 1);
+            obj.all_edge_regions(regions) = true;
         end
         
         
@@ -75,9 +83,9 @@ classdef Region < handle
         
         
         % 计算这个区域系数的方程，这里是在所有区域内部方程计算完成之后调用的
-        function funcs = gen_region_coefficient_func(obj, all_regions)
+        function [funcs, BCfuncs_loc_map] = gen_region_coefficient_func(obj, all_regions)
             obj.all_regions = all_regions;
-            obj.impl.BCfuncs_loc_map = zeros(2, length(all_regions));
+            
             obj.impl.all_regions = all_regions;
             % 首先需要计算边界方程，调用Cal_BC方法，然后就修改了Region中的impl属性的边界方程等等
             obj.boundarys.cal_BC(obj.Ln, obj.Rn, obj.Tn, obj.Bn);
@@ -85,6 +93,7 @@ classdef Region < handle
             obj.impl.gen_coefficient_func();
             % 收集系数方程及其对应的值，上下一一对应
             funcs = [obj.impl.eq_c0x; obj.impl.eq_c_hx; obj.impl.eq_d0x; obj.impl.eq_d_hx; obj.impl.eq_e_ny; obj.impl.eq_f_ny];
+            BCfuncs_loc_map = obj.impl.BCfuncs_loc_map;
         end
         
     end
