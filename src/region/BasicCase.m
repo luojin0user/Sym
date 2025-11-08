@@ -145,8 +145,9 @@ classdef BasicCase < handle
             
             % 直接赋值给对象属性
             syms mu_0 'real'
+            %obj.mu_0 = mu_0;
+            %obj.mu_r = sym(['mu_r' suffix], 'real');
             obj.mu_0 = 4*pi*1e-7;
-            % obj.mu_r = sym(['mu_r' suffix], 'real');
             obj.mu_r = mu_r;
             
             obj.H_max = H_max;

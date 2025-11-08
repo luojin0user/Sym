@@ -69,8 +69,8 @@ classdef Case1 < BasicCase
                     % 首先找到对应临界区域
                     bottom_idx = obj.bottoms(row);
                     bottom_i = obj.all_regions{bottom_idx}.impl;  % 对应的top_i的对象的实现
-                    c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x,'Hold',true);
-                    obj.eq_c_hx{row, col} = symfun(sym(['c_hx' suffix]), [x,y]) == c_hx_expr;
+                    c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x, Hold=true);
+                    obj.eq_c_hx{row, col} = symfun(sym(['c_hx' suffix]), [x,y]) == (c_hx_expr);
                     
                     if row ~= rowk
                         obj.BCfuncs_loc_map(:,bottom_idx) = [2,func_num];
@@ -80,7 +80,7 @@ classdef Case1 < BasicCase
                         % 如果当前这个临界区域是有源区域
                         if(obj.ES_regions(bottom_idx) == true)
                             % 找到对应的方程，可能是求导的，可能是原方程
-                            es_expr = (2 / obj.tau_x) * int(obj.B_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x,'Hold',true);
+                            es_expr = (2 / obj.tau_x) * int(obj.B_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x, Hold=true);
                             es_c_expr = es_c_expr + es_expr;    % 在一个边界的所有ES相加
                             rowES = rowES + 1;
                         end
@@ -105,8 +105,8 @@ classdef Case1 < BasicCase
                     end
                     top_idx = obj.tops(row);
                     top_i = obj.all_regions{top_idx}.impl;  % 对应的top_i的对象的实现
-                    d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x,'Hold',true);
-                    obj.eq_d_hx{row, col} = symfun(sym(['d_hx' suffix]), [x,y]) == d_hx_expr;
+                    d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x, Hold=true);
+                    obj.eq_d_hx{row, col} = symfun(sym(['d_hx' suffix]), [x,y]) ==(d_hx_expr);
                     
                     if row ~= rowk
                         obj.BCfuncs_loc_map(:,top_idx) = [4,func_num];
@@ -116,7 +116,7 @@ classdef Case1 < BasicCase
                         % 如果当前这个临界区域是有源区域
                         if obj.ES_regions(top_idx)
                             % 找到对应的方程，可能是求导的，可能是原方程
-                            es_expr = (2 / obj.tau_x) * int(obj.T_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x,'Hold',true);
+                            es_expr = (2 / obj.tau_x) * int(obj.T_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x, Hold=true);
                             es_d_expr = es_d_expr + es_expr;    % 在一个边界的所有ES相加
                             rowES = rowES + 1;
                         end
@@ -132,15 +132,15 @@ classdef Case1 < BasicCase
                         obj.eq_e_ny{i} = [];
                         continue; % 跳过为零的函数
                     end
-                    e_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.L_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
-                    obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == e_ny_expr;
+                    e_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.L_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
+                    obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == (e_ny_expr);
                 end
                 
                 left_idx = obj.lefts(1);
                 % 如果当前这个临界区域是有源区域
                 if obj.ES_regions(left_idx)
                     % 找到对应的方程，可能是求导的，可能是原方程
-                    es_expr = (2 / obj.tau_y) * int(obj.L_ESfuncs(1) * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
+                    es_expr = (2 / obj.tau_y) * int(obj.L_ESfuncs(1) * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
                     es_e_expr = es_e_expr + es_expr;    % 在一个边界的所有ES相加
                 end
                 
@@ -156,15 +156,15 @@ classdef Case1 < BasicCase
                         obj.eq_f_ny{i} = [];
                         continue; % 跳过为零的函数
                     end
-                    f_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.R_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
-                    obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == f_ny_expr;
+                    f_ny_expr(x,y) = (2 / obj.tau_y) * int(obj.R_funcs{i} * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
+                    obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == (f_ny_expr);
                 end
                 
                 right_idx = obj.rights(1);
                 % 如果当前这个临界区域是有源区域
                 if obj.ES_regions(right_idx)
                     % 找到对应的方程，可能是求导的，可能是原方程
-                    es_expr = (2 / obj.tau_y) * int(obj.R_ESfuncs(1) * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y,'Hold',true);
+                    es_expr = (2 / obj.tau_y) * int(obj.R_ESfuncs(1) * sin(obj.lambda_n * (y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
                     es_f_expr = es_f_expr + es_expr;    % 在一个边界的所有ES相加
                 end
                 
@@ -179,28 +179,28 @@ classdef Case1 < BasicCase
             
             % c_ES
             if es_c_expr ~= 0
-                obj.eq_ES{2} = symfun(sym(['c_ES' suffix]), [x, y]) == es_c_expr;
+                obj.eq_ES{2} = symfun(sym(['c_ES' suffix]), [x, y]) == (es_c_expr);
             else
                 obj.eq_ES{2} = [];   % 空表示不用创建
             end
             
             % d_ES
             if es_d_expr ~= 0
-                obj.eq_ES{4} = symfun(sym(['d_ES' suffix]), [x, y]) == es_d_expr;
+                obj.eq_ES{4} = symfun(sym(['d_ES' suffix]), [x, y]) == (es_d_expr);
             else
                 obj.eq_ES{4} = [];
             end
             
             % e_ES
             if es_e_expr ~= 0
-                obj.eq_ES{5} = symfun(sym(['e_ES' suffix]), [x, y]) == es_e_expr;
+                obj.eq_ES{5} = symfun(sym(['e_ES' suffix]), [x, y]) == (es_e_expr);
             else
                 obj.eq_ES{5} = [];
             end
             
             % f_ES
             if es_f_expr ~= 0
-                obj.eq_ES{6} = symfun(sym(['f_ES' suffix]), [x, y]) == es_f_expr;
+                obj.eq_ES{6} = symfun(sym(['f_ES' suffix]), [x, y]) == (es_f_expr);
             else
                 obj.eq_ES{6} = [];
             end

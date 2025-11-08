@@ -2,17 +2,19 @@ classdef AllRegions < handle
     properties
         regions  % cell array 存储所有区域
         region_num = 7; % 区域数量
-        %all_H_max = [60; 60; 60; 60; 60; 60; 60];
-        %all_N_max = [60; 60; 60; 60; 60; 60; 60];
+        all_H_max = [60; 60; 60; 60; 60; 60; 60];
+        all_N_max = [60; 60; 60; 60; 60; 60; 60];
         
-        all_H_max = [300; 300; 107; 107; 43; 21; 21];
-        all_N_max = [60; 60; 268; 268; 268; 268; 268];
-
-        % all_H_max = [2; 2; 2; 2; 2; 2; 2];
-        % all_N_max = [2; 2; 2; 2; 2; 2; 2];
+        % all_H_max = [300; 300; 107; 107; 43; 21; 21];
+        % all_N_max = [60; 60; 268; 268; 268; 268; 268];
+        
+        % all_H_max = [1; 1; 1; 1; 1; 1; 1];
+        % all_N_max = [1; 1; 1; 1; 1; 1; 1];
+        Jz6 = -1600 .* 5 / (800 .* 1e-6); % Region 6 的电流密度
+        Jz7 = 1600 .* 5 / (800 .* 1e-6); % Region 7 的电流密度 (反向)
 
         all_mu_r = [1;1;1;1;1;1;1];
-        all_J_r = [0;0;0;0;0;10000000;-10000000];
+        all_J_r = [0;0;0;0;0;-1600 .* 5 / 800e-6;1600 .* 5 / 800e-6];
     end
     
     methods
@@ -38,21 +40,17 @@ classdef AllRegions < handle
             % 拼接ES矩阵
             ES = obj.splice_ES(ES_funcs);
             disp("计算ES方程完成")
-            
             save("ES.mat", 'ES');
             
             % 开始拼接所有的矩阵
             BC = obj.splice_BC(BC_funcs, BC_loc);
             disp("计算BC方程完成");
-            % disp(BC);
-
             save("BC.mat", 'BC');
-
+            
             % IC = BC \ ES;
-            IC = lsqr(BC, ES);
-            % IC = solve_sparse_BC_ES(BC, ES);
+            IC = lsqr(BC, ES, 1e-6, 1000);
             % IC = pcg(BC, ES, 1e-12, 10000);
-
+            
             save("IC.mat", 'IC');
         end
         
@@ -109,7 +107,7 @@ classdef AllRegions < handle
             
             BC_blocks = cell(obj.region_num, obj.region_num);
             N = obj.region_num;
-            fprintf("开始计算BC矩阵，共%d个\n",N);
+            sprintf("开始计算BC矩阵，共%d个\n",N);
             parfor i = 1:N
                 for j = 1:N
                     if i == j
@@ -218,8 +216,8 @@ classdef AllRegions < handle
                 % 需要先代入数据
                 % expr = subs(rhs(func), {row_hn,col_hn}, {row_idx, col_idx});
                 % Q = -double(expr);
-                expr(row_hn, col_hn) = simplify(rhs(func));
-                f = matlabFunction(expr, "Vars", {row_hn, col_hn});
+                expr(row_hn, col_hn) = simplifyFraction(rhs(func));
+                f = matlabFunction((expr), "Vars", {row_hn, col_hn});
                 Q = arrayfun(@(x,y) -f(x,y), row_idx, col_idx);
                 
                 % 将这个值送入BCxx中
@@ -232,18 +230,19 @@ classdef AllRegions < handle
                 
                 if edge_bc_loc(1) <= 4 && row_has_cd0x % 如果现在计算的是c或者d，才需要进入这里计算
                     func = funcss{edge_bc_loc(2)-1, col_exists(j)}; % 目前而言，c0/d0方程就是对应c或d的方程的前一个
-                    [~, col_idx] = ndgrid(1, 1:cols_len(j));   % 行数为1
-                    row_idx = zeros(1, cols_len(j));
+                    col_idx = 1:cols_len(j);   % 行数为1
+                    % row_idx = zeros(1, cols_len(j));
                     % 计算这个矩阵的值
                     % expr = subs(rhs(func), {row_hn,col_hn}, {row_idx, col_idx});
                     % Q1 = -double(expr);
-                    expr(row_hn, col_hn) = simplify(rhs(func));
-                    f = matlabFunction(expr, "Vars", {row_hn, col_hn});
-                    Q1 = arrayfun(@(x,y) -f(x,y), row_idx, col_idx);
+                    expr(col_hn) = simplifyFraction(rhs(func));
+                    pretty(func);
+                    f = matlabFunction((expr), "Vars", {col_hn});
+                    Q1 = arrayfun(@(x) -f(x), col_idx);
                     % Q1 = -f(row_idx, col_idx);   % 纯数值运算，超级快
                     
-                    end_row = start_row - 1;    % 上面的start_row
-                    start_row = end_row;    % 这个只需要写一行，写在对应的c或d的上面一行
+                    start_row = start_row - 1;    % 上面的start_row
+                    end_row = start_row;    % 这个只需要写一行，写在对应的c或d的上面一行
                     BCxx(start_row:end_row, start_col:end_col) = Q1;
                 end
             end
@@ -281,9 +280,9 @@ classdef AllRegions < handle
                     else
                         func = funcs{func_num};
                         % pretty(func);
-                        expr(col_hn) = simplify(rhs(func));
+                        expr(col_hn) = simplifyFraction(rhs(func));
                         f = matlabFunction(expr, "Vars", {col_hn});
-
+                        
                         if idx_case.ES_regions(i)   % 如果自己这个区域就是有源项
                             col_idx = 0;
                             ESxx = double(expr);
@@ -293,7 +292,6 @@ classdef AllRegions < handle
                         end
                         
                     end
-                    
                     ESx = [ESx, ESxx];
                     
                 end
@@ -323,14 +321,16 @@ classdef AllRegions < handle
             out(idx) = 2.*h(idx) + 2 + (col_nums(idx)-4).*n(idx);
         end
         
-        % 计算区域1的Bx与By
-        function k = cal_path1(obj, IC)
-            idx_impl = obj.regions{i}.impl;
+        % 计算某个区域某个点(x0,y0)的Bx与By
+        function [Bx, By] = cal_Bx_By(obj, IC, region_num, x0, y0)
+            idx_impl = obj.regions{region_num}.impl;
             H_max = idx_impl.H_max;
-            d_hx_1 = IC(1:H_max);
-            syms x real;
-            Bx_f(idx_impl.d_hx, x) = idx.impl.B_xx;
-
+            N_max = idx_impl.N_max;
+            d_hx_1 = IC(1:H_max);  % 目前只考虑区域1的
+            syms x y real;
+            Bx_f(idx_impl.d_hx, x, y) = idx_impl.B_xx;
+            By_f(idx_impl.d_hx, x, y) = idx_impl.B_xy;
+            
         end
         
     end
