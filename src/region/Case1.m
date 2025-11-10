@@ -69,7 +69,11 @@ classdef Case1 < BasicCase
                     % 首先找到对应临界区域
                     bottom_idx = obj.bottoms(row);
                     bottom_i = obj.all_regions{bottom_idx}.impl;  % 对应的top_i的对象的实现
-                    c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x, Hold=true);
+                    % 注意这里的积分限，是自己边和邻接边的相交位置
+                    int_start = max(bottom_i.xl, obj.xl);
+                    int_end = min(bottom_i.xr, obj.xr);
+                    % [int_start, int_end] = obj.find_intersection(bottom_i.xl, bottom_i.xr, obj.xl, obj.xr);
+                    c_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.B_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, int_start, int_end, Hold=true);
                     obj.eq_c_hx{row, col} = symfun(sym(['c_hx' suffix]), [x,y]) == (c_hx_expr);
                     
                     if row ~= rowk
@@ -80,7 +84,7 @@ classdef Case1 < BasicCase
                         % 如果当前这个临界区域是有源区域
                         if(obj.ES_regions(bottom_idx) == true)
                             % 找到对应的方程，可能是求导的，可能是原方程
-                            es_expr = (2 / obj.tau_x) * int(obj.B_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, bottom_i.xl, bottom_i.xl + bottom_i.tau_x, Hold=true);
+                            es_expr = (2 / obj.tau_x) * int(obj.B_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, int_start, int_end, Hold=true);
                             es_c_expr = es_c_expr + es_expr;    % 在一个边界的所有ES相加
                             rowES = rowES + 1;
                         end
@@ -105,7 +109,10 @@ classdef Case1 < BasicCase
                     end
                     top_idx = obj.tops(row);
                     top_i = obj.all_regions{top_idx}.impl;  % 对应的top_i的对象的实现
-                    d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x, Hold=true);
+                    int_start = max(top_i.xl, obj.xl);
+                    int_end = min(top_i.xr, obj.xr);
+                    % [int_start, int_end] = obj.find_intersection(top_i.xl, top_i.xr, obj.xl, obj.xr);
+                    d_hx_expr(x,y) = (2 / obj.tau_x) * int(obj.T_funcs{i} * sin(obj.beta_h * (x - obj.xl)), x, int_start, int_end, Hold=true);
                     obj.eq_d_hx{row, col} = symfun(sym(['d_hx' suffix]), [x,y]) ==(d_hx_expr);
                     
                     if row ~= rowk
@@ -116,7 +123,7 @@ classdef Case1 < BasicCase
                         % 如果当前这个临界区域是有源区域
                         if obj.ES_regions(top_idx)
                             % 找到对应的方程，可能是求导的，可能是原方程
-                            es_expr = (2 / obj.tau_x) * int(obj.T_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, top_i.xl, top_i.xl + top_i.tau_x, Hold=true);
+                            es_expr = (2 / obj.tau_x) * int(obj.T_ESfuncs(rowES) * sin(obj.beta_h * (x - obj.xl)), x, int_start, int_end, Hold=true);
                             es_d_expr = es_d_expr + es_expr;    % 在一个边界的所有ES相加
                             rowES = rowES + 1;
                         end

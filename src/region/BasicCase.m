@@ -155,10 +155,12 @@ classdef BasicCase < handle
             
             
             % --- 边界积分项 ---
-            obj.c_hx = symfun(sym(['c_hx' suffix]), x);  % c_hx_1(x)
-            obj.d_hx = symfun(sym(['d_hx' suffix]), x);  % d_hx_1(x)
-            obj.e_ny = symfun(sym(['e_ny' suffix]), y);  % e_ny_1(y)
-            obj.f_ny = symfun(sym(['f_ny' suffix]), y);  % f_ny_1(y)
+            obj.c_0x = sym(['c_0x' suffix], 'real');
+            obj.d_0x = sym(['d_0x' suffix], 'real');
+            obj.c_hx = sym(['c_hx' suffix], 'real');  % c_hx_1(x)
+            obj.d_hx = sym(['d_hx' suffix], 'real');  % d_hx_1(x)
+            obj.e_ny = sym(['e_ny' suffix], 'real');  % e_ny_1(y)
+            obj.f_ny = sym(['f_ny' suffix], 'real');  % f_ny_1(y)
         end
         
         % 公共逻辑：处理 Ln/Rn/Tn/Bn
@@ -196,5 +198,25 @@ classdef BasicCase < handle
         function regions = gen_coefficient_func(obj)
             error('子类必须实现 gen_region 方法');
         end
+
+        function intersection = find_intersection(obj, x1, x2, y1, y2)
+            % 确保 x1 <= x2 和 y1 <= y2
+            % x1 = min(x1, x2);
+            % x2 = max(x1, x2);
+            % y1 = min(y1, y2);
+            % y2 = max(y1, y2);
+            
+            % 找到重叠部分的起始点和结束点
+            start = max(x1, y1);
+            end_point = min(x2, y2);
+            
+            % 如果重叠部分存在，则返回交集区间
+            if start < end_point
+                intersection = [start, end_point];
+            else
+                intersection = [];  % 如果没有交集，则返回空数组
+            end
+        end
+
     end
 end

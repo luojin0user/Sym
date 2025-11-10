@@ -23,7 +23,7 @@ classdef Case2 < BasicCase
             
             % 线性项
             syms x y real
-            obj.A_y_P = 0.5 * obj.mu_0 * obj.mu_r * obj.J_z * y^2;
+            obj.A_y_P = -0.5 * obj.mu_0 * obj.mu_r * obj.J_z * y * y;
             obj.B_x_P = diff(obj.A_y_P, y);
             obj.B_y_P = -diff(obj.A_y_P, x);
             
@@ -41,7 +41,7 @@ classdef Case2 < BasicCase
             
             % 磁场分量
             obj.B_x_x = diff(obj.A_zx_expr , y);
-            obj.B_x_y = diff(obj.A_zy_expr , y);
+            obj.B_x_y = diff(obj.A_zy_expr , y);    
             obj.B_y_x = -diff(obj.A_zx_expr , x);
             obj.B_y_y = -diff(obj.A_zy_expr , x);
             
@@ -134,49 +134,38 @@ classdef Case2 < BasicCase
                 func_num = func_num + 1;
             end
             
-            if ~obj.Ln
-                for i = 1:length(obj.L_funcs)
-                    if isempty(obj.L_funcs{i})
+            % Case2的e f边界互换
+            if ~obj.Rn
+                for i = 1:length(obj.R_funcs)
+                    if isempty(obj.R_funcs{i})
                         obj.eq_e_ny{i} = [];
                         continue; % 跳过为零的函数
                     end
-                    e_ny_expr(x,y) = (2/obj.tau_y) * int(obj.L_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
+                    e_ny_expr(x,y) = (2/obj.tau_y) * int(obj.R_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
                     obj.eq_e_ny{i} = symfun(sym(['e_ny' suffix]), [x,y]) == (e_ny_expr);
                 end
                 
-                left_idx = obj.lefts(1);
-                % 如果当前这个临界区域是有源区域
-                if obj.ES_regions(left_idx)
-                    % 找到对应的方程，可能是求导的，可能是原方程
-                    es_expr = (2/obj.tau_y) * int(obj.L_ESfuncs(1) .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
-                    es_e_expr = es_e_expr + es_expr;    % 在一个边界的所有ES相加
-                end
+                right_idx = obj.rights(1);
                 
-                obj.BCfuncs_loc_map(:,left_idx) = [5,func_num];
+                obj.BCfuncs_loc_map(:,right_idx) = [5,func_num];
                 func_num = func_num + 1;
             else
                 func_num = func_num + 1;
             end
-            
-            if ~obj.Rn
-                for i = 1:length(obj.R_funcs)
-                    if isempty(obj.R_funcs{i})
+
+            if ~obj.Ln
+                for i = 1:length(obj.L_funcs)
+                    if isempty(obj.L_funcs{i})
                         obj.eq_f_ny{i} = [];
                         continue; % 跳过为零的函数
                     end
-                    f_ny_expr(x,y) = (2/obj.tau_y) * int(obj.R_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
+                    f_ny_expr(x,y) = (2/obj.tau_y) * int(obj.L_funcs{i} .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
                     obj.eq_f_ny{i} = symfun(sym(['f_ny' suffix]), [x,y]) == (f_ny_expr);
                 end
                 
-                right_idx = obj.rights(1);
-                % 如果当前这个临界区域是有源区域
-                if obj.ES_regions(right_idx)
-                    % 找到对应的方程，可能是求导的，可能是原方程
-                    es_expr = (2/obj.tau_y) * int(obj.R_ESfuncs(1) .* sin(obj.lambda_n*(y - obj.yl)), y, obj.yl, obj.yl + obj.tau_y, Hold=true);
-                    es_f_expr = es_f_expr + es_expr;    % 在一个边界的所有ES相加
-                end
-                
-                obj.BCfuncs_loc_map(:,right_idx) = [6,func_num];
+                left_idx = obj.lefts(1);
+
+                obj.BCfuncs_loc_map(:,left_idx) = [6,func_num];
                 func_num = func_num + 1;
             else
                 func_num = func_num + 1;

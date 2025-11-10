@@ -6,8 +6,8 @@ clc;
 mu0 = 4 .* pi .* 1e-7; % 真空磁导率 [H/m]
 
 % 几何参数 (cm -> m)
-x = [0, 10, 12, 16, 18, 28] .* 10; % x坐标 [mm]
-y = [0, 10, 14, 24] .* 10; % y坐标 [mm]
+x = [0, 10, 12, 16, 18, 28] .* 0.01; % x坐标 [mm]
+y = [0, 10, 14, 24] .* 0.01; % y坐标 [mm]
 global x1 x2 x3 x4 x5 x6
 global y1 y2 y3 y4
 x1 = x(1); x2 = x(2); x3 = x(3); x4 = x(4); x5 = x(5); x6 = x(6);
@@ -42,7 +42,7 @@ mu1 = mu_air;
 mu2 = mu_air;
 mu3 = mu_air;
 mu4 = mu_air;
-mu5 = mu_iron; % Region 5 是铁芯
+mu5 = mu_r_iron; % Region 5 是铁芯
 mu6 = mu_air; % Region 6 是线圈导体区域 (铜线，但考虑为空气磁导率)
 mu7 = mu_air; % Region 7 是线圈导体区域 (铜线，但考虑为空气磁导率)
 
@@ -52,12 +52,12 @@ mu7 = mu_air; % Region 7 是线圈导体区域 (铜线，但考虑为空气磁�
 H1max = 60; H2max = 60; H3max = 60; H4max = 60; H5max = 60; H6max = 60; H7max = 60;
 N3max = 60; N4max = 60; N5max = 60; N6max = 60; N7max = 60;
 
-% H1max = 70; H2max = 70; H3max = 70; H4max = 70; H5max = 40; H6max = 20; H7max = 20;
-% N3max = 70; N4max = 70; N5max = 70; N6max = 70; N7max = 70;
+% H1max = 63; H2max = 63; H3max = 63; H4max = 63; H5max = 63; H6max = 63; H7max = 63;
+% N3max = 62; N4max = 62; N5max = 62; N6max = 62; N7max = 62;
 % 电流密度 (根据文档Table 1调整)
 Nt = 1600; I = 5; Sc = 800 .* 1e-6; % 匝数，电流，导体表面积 (mm^2 -> m^2)
-Jz6 = -Nt .* I / Sc; % Region 6 的电流密度
-Jz7 = Nt .* I / Sc; % Region 7 的电流密度 (反向)
+Jz6 = Nt .* I / Sc; % Region 6 的电流密度
+Jz7 = -Nt .* I / Sc; % Region 7 的电流密度 (反向)
 
 % --- 2. 计算 AzP 和 BxP/ByP (泊松方程的特定解) ---
 % 这些值在计算 Q 和 ES 项时，需要在特定 y 坐标处评估。
@@ -201,101 +201,101 @@ switch region_id
         
         Bx = sum(Bxv);
         By = sum(Byv);
-
+        
     case 2 % Region 2: Laplace's equation (Eq 8-10)
         % Constants: c2_h2
         h2 = 1:H2max;
         c2_h = IC(ic_idx_map.R2_c)';
         beta2_h = h2 .* pi / Tx2;
-                    
+        
         % Bx2 (Eq 9)
         Bxv = c2_h .* (ch(beta2_h .* (y4 - y_coord)) ./ ch(beta2_h .* Ty2)) .* sin(beta2_h .* (x_coord - x1));
         % By2 (Eq 10)
         Byv = c2_h .* sh(beta2_h .* (y4 - y_coord)) ./ ch(beta2_h .* Ty2) .* cos(beta2_h .* (x_coord - x1));
-
+        
         Bx = sum(Bxv);
         By = sum(Byv);
         
     case 3 % Region 3: Laplace's equation (Eq 12a-14c)
         % Constants: c3_h3, d3_h3, f3_n3
         % Az3 = Az3_x + Az3_y (12a)
-
+        
         h3 = 1:H3max;
         c3_h = IC(ic_idx_map.R3_c)';
         d3_h = IC(ic_idx_map.R3_d)';
         beta3_h = h3 .* pi / Tx3;
-
-            % Bx3_x (13b)
-            Bx_xv = (-c3_h .* ch(beta3_h .* (y3 - y_coord)) ./ sh(beta3_h .* Ty3) + ...
-                d3_h .* ch(beta3_h .* (y_coord - y2)) ./ sh(beta3_h .* Ty3)) .* sin(beta3_h .* (x_coord - x1));
-            % By3_x (14b)
-            By_xv =  (c3_h .* (sh(beta3_h .* (y3 - y_coord)) ./ sh(beta3_h .* Ty3)) + ...
-                d3_h .* (sh(beta3_h .* (y_coord - y2)) ./ sh(beta3_h .* Ty3))) .* cos(beta3_h .* (x_coord - x1));
-
-         n3 = 1:N3max;
-         f3_n = IC(ic_idx_map.R3_f)';
-         lambda3_n = n3 .* pi / Ty3; 
-            % Bx3_y (13c)
-            Bx_yv =  + f3_n .* (sh(lambda3_n .* (x_coord - x1)) ./ sh(lambda3_n .* Tx3)) .* cos(lambda3_n .* (y_coord - y2));
-            % By3_y (14c)
-            By_yv =   f3_n .* (ch(lambda3_n .* (x_coord - x1)) ./ sh(lambda3_n .* Tx3)) .* sin(lambda3_n .* (y_coord - y2));
-
+        
+        % Bx3_x (13b)
+        Bx_xv = (-c3_h .* ch(beta3_h .* (y3 - y_coord)) ./ sh(beta3_h .* Ty3) + ...
+            d3_h .* ch(beta3_h .* (y_coord - y2)) ./ sh(beta3_h .* Ty3)) .* sin(beta3_h .* (x_coord - x1));
+        % By3_x (14b)
+        By_xv =  (c3_h .* (sh(beta3_h .* (y3 - y_coord)) ./ sh(beta3_h .* Ty3)) + ...
+            d3_h .* (sh(beta3_h .* (y_coord - y2)) ./ sh(beta3_h .* Ty3))) .* cos(beta3_h .* (x_coord - x1));
+        
+        n3 = 1:N3max;
+        f3_n = IC(ic_idx_map.R3_f)';
+        lambda3_n = n3 .* pi / Ty3;
+        % Bx3_y (13c)
+        Bx_yv =  + f3_n .* (sh(lambda3_n .* (x_coord - x1)) ./ sh(lambda3_n .* Tx3)) .* cos(lambda3_n .* (y_coord - y2));
+        % By3_y (14c)
+        By_yv =   f3_n .* (ch(lambda3_n .* (x_coord - x1)) ./ sh(lambda3_n .* Tx3)) .* sin(lambda3_n .* (y_coord - y2));
+        
         Bx = sum(Bx_xv) + sum(Bx_yv);
         By = -sum(By_xv) - sum(By_yv);
         
     case 4 % Region 4: Laplace's equation (Eq 17a-19c)
         % Constants: c4_h4, d4_h4, e4_n4
-            h4 = 1:H4max;
-            c4_h = IC(ic_idx_map.R4_c)';
-            d4_h = IC(ic_idx_map.R4_d)';
-            beta4_h = h4 .* pi / Tx4;
-
-            % Bx4_x (18b)
-            Bx_xv = (-c4_h .* ch(beta4_h .* (y3 - y_coord)) / sh(beta4_h .* Ty4) + ...
-                d4_h .* ch(beta4_h .* (y_coord - y2)) / sh(beta4_h .* Ty4)) .* sin(beta4_h .* (x_coord - x5));
-            % By4_x (19b)
-            By_xv = (c4_h .* beta4_h .* sh(beta4_h .* (y3 - y_coord)) / sh(beta4_h .* Ty4) + ...
-                d4_h .* beta4_h .* sh(beta4_h .* (y_coord - y2)) / sh(beta4_h .* Ty4)) .* cos(beta4_h .* (x_coord - x5));
-
-            n4 = 1:N4max;
-            e4_n = IC(ic_idx_map.R4_e)';
-            lambda4_n = n4 .* pi / Ty4;
-            
-            % Bx4_y (18c)
-            Bx_yv =  e4_n .* (lambda4_n / sh(lambda4_n .* Tx4)) .* ch(lambda4_n .* (x6 - x_coord)) .* cos(lambda4_n .* (y_coord - y2));
-            % By4_y (19c)
-            By_yv = + e4_n .* (ch(lambda4_n .* (x6 - x_coord)) / sh(lambda4_n .* Tx4)) .* sin(lambda4_n .* (y_coord - y2));
-
+        h4 = 1:H4max;
+        c4_h = IC(ic_idx_map.R4_c)';
+        d4_h = IC(ic_idx_map.R4_d)';
+        beta4_h = h4 .* pi / Tx4;
+        
+        % Bx4_x (18b)
+        Bx_xv = (-c4_h .* ch(beta4_h .* (y3 - y_coord)) / sh(beta4_h .* Ty4) + ...
+            d4_h .* ch(beta4_h .* (y_coord - y2)) / sh(beta4_h .* Ty4)) .* sin(beta4_h .* (x_coord - x5));
+        % By4_x (19b)
+        By_xv = (c4_h  .* sh(beta4_h .* (y3 - y_coord)) / sh(beta4_h .* Ty4) + ...
+            d4_h  .* sh(beta4_h .* (y_coord - y2)) / sh(beta4_h .* Ty4)) .* cos(beta4_h .* (x_coord - x5));
+        
+        n4 = 1:N4max;
+        e4_n = IC(ic_idx_map.R4_e)';
+        lambda4_n = n4 .* pi / Ty4;
+        
+        % Bx4_y (18c)
+        Bx_yv =  e4_n .* ( sh(lambda4_n .* (x6 - x_coord)) ./ sh(lambda4_n .* Tx4))  .* cos(lambda4_n .* (y_coord - y2));
+        % By4_y (19c)
+        By_yv = + e4_n .* (ch(lambda4_n .* (x6 - x_coord)) ./ sh(lambda4_n .* Tx4)) .* sin(lambda4_n .* (y_coord - y2));
+        
         Bx = sum(Bx_xv) + sum(Bx_yv);
         By = -sum(By_xv) + sum(By_yv);
         
     case 5 % Region 5: Laplace's equation (Eq 22a-24c)
         % Constants: c5_h5, d5_h5, e5_n5, f5_n5
         
-            h5 = 1:H5max;
-            c5_h = IC(ic_idx_map.R5_c)';
-            d5_h = IC(ic_idx_map.R5_d)';
-            beta5_h = h5 .* pi / Tx5;
-            
-            % Bx5_x (23b)
-            Bx_xv = (-c5_h .* ch(beta5_h .* (y3 - y_coord)) / sh(beta5_h .* Ty5) + ...
-                d5_h .* ch(beta5_h .* (y_coord - y2)) / sh(beta5_h .* Ty5)) .* sin(beta5_h .* (x_coord - x3));
-            % By5_x (24b)
-            By_xv = (c5_h .* beta5_h .* sh(beta5_h .* (y3 - y_coord)) / sh(beta5_h .* Ty5) + ...
-                d5_h .* beta5_h .* sh(beta5_h .* (y_coord - y2)) / sh(beta5_h .* Ty5)) .* cos(beta5_h .* (x_coord - x3));
-
-            n5 = 1:N5max;
-            e5_n = IC(ic_idx_map.R5_e)';
-            f5_n = IC(ic_idx_map.R5_f)';
-            lambda5_n = n5 .* pi / Ty5;
-            
-            % Bx5_y (23c)
-            Bx_yv =  (e5_n .* lambda5_n .* ch(lambda5_n .* (x4 - x_coord)) / sh(lambda5_n .* Tx5) + ...
-                f5_n .* lambda5_n .* ch(lambda5_n .* (x_coord - x3)) / sh(lambda5_n .* Tx5)) .* cos(lambda5_n .* (y_coord - y2));
-            % By5_y (24c)
-            By_yv =  (-e5_n .* ch(lambda5_n .* (x4 - x_coord)) / sh(lambda5_n .* Tx5) + ...
-                f5_n .* ch(lambda5_n .* (x_coord - x3)) / sh(lambda5_n .* Tx5)) .* sin(lambda5_n .* (y_coord - y2));
-
+        h5 = 1:H5max;
+        c5_h = IC(ic_idx_map.R5_c)';
+        d5_h = IC(ic_idx_map.R5_d)';
+        beta5_h = h5 .* pi / Tx5;
+        
+        % Bx5_x (23b)
+        Bx_xv = (-c5_h .* ch(beta5_h .* (y3 - y_coord)) / sh(beta5_h .* Ty5) + ...
+            d5_h .* ch(beta5_h .* (y_coord - y2)) / sh(beta5_h .* Ty5)) .* sin(beta5_h .* (x_coord - x3));
+        % By5_x (24b)
+        By_xv = (c5_h  .* sh(beta5_h .* (y3 - y_coord)) / sh(beta5_h .* Ty5) + ...
+            d5_h  .* sh(beta5_h .* (y_coord - y2)) / sh(beta5_h .* Ty5)) .* cos(beta5_h .* (x_coord - x3));
+        
+        n5 = 1:N5max;
+        e5_n = IC(ic_idx_map.R5_e)';
+        f5_n = IC(ic_idx_map.R5_f)';
+        lambda5_n = n5 .* pi / Ty5;
+        
+        % Bx5_y (23c)
+        Bx_yv =  (e5_n  .* sh(lambda5_n .* (x4 - x_coord)) / sh(lambda5_n .* Tx5) + ...
+            f5_n  .* sh(lambda5_n .* (x_coord - x3)) / sh(lambda5_n .* Tx5)) .* cos(lambda5_n .* (y_coord - y2));
+        % By5_y (24c)
+        By_yv =  (-e5_n .* ch(lambda5_n .* (x4 - x_coord)) / sh(lambda5_n .* Tx5) + ...
+            f5_n .* ch(lambda5_n .* (x_coord - x3)) / sh(lambda5_n .* Tx5)) .* sin(lambda5_n .* (y_coord - y2));
+        
         Bx = sum(Bx_xv) + sum(Bx_yv);
         By = -sum(By_xv) - sum(By_yv);
         
@@ -308,37 +308,37 @@ switch region_id
         d6_0 = IC(ic_idx_map.R6_d0);
         Bx_x0 = (-c6_0 + d6_0); % From (28b) for h=0
         
-
-            h6 = 1:H6max;
-            c6_h = IC(ic_idx_map.R6_c)';
-            d6_h = IC(ic_idx_map.R6_d)';
-            beta6_h = h6 .* pi / Tx6;
-
-            % Bx6_x (28b)
-            Bx_xv = (-c6_h .* ch(beta6_h .* (y3 - y_coord)) / sh(beta6_h .* Ty6) + ...
-                d6_h .* ch(beta6_h .* (y_coord - y2)) / sh(beta6_h .* Ty6)) .* cos(beta6_h .* (x_coord - x2));
-            % By6_x (29b)
-            By_xv =  (c6_h .* beta6_h .* sh(beta6_h .* (y3 - y_coord)) / sh(beta6_h .* Ty6) + ...
-                d6_h .* beta6_h .* sh(beta6_h .* (y_coord - y2)) / sh(beta6_h .* Ty6)) .* sin(beta6_h .* (x_coord - x2));
-
-            n6 = 1:N6max;
-            e6_n = IC(ic_idx_map.R6_e)';
-            f6_n = IC(ic_idx_map.R6_f)';
-            lambda6_n = n6 .* pi / Ty6;
-            
-            % Bx6_y (28c)
-            Bx_yv =  (e6_n .* lambda6_n .* sh(lambda6_n .* (x_coord - x2)) / sh(lambda6_n .* Tx6) - ...
-                f6_n .* lambda6_n .* sh(lambda6_n .* (x3 - x_coord)) / sh(lambda6_n .* Tx6)) .* cos(lambda6_n .* (y_coord - y2));
-            % By6_y (29c)
-            By_yv = + (e6_n .* ch(lambda6_n .* (x_coord - x2)) / sh(lambda6_n .* Tx6) + ...
-                f6_n .* ch(lambda6_n .* (x3 - x_coord)) / sh(lambda6_n .* Tx6)) .* sin(lambda6_n .* (y_coord - y2));
+        
+        h6 = 1:H6max;
+        c6_h = IC(ic_idx_map.R6_c)';
+        d6_h = IC(ic_idx_map.R6_d)';
+        beta6_h = h6 .* pi / Tx6;
+        
+        % Bx6_x (28b)
+        Bx_xv = (-c6_h .* ch(beta6_h .* (y3 - y_coord)) / sh(beta6_h .* Ty6) + ...
+            d6_h .* ch(beta6_h .* (y_coord - y2)) / sh(beta6_h .* Ty6)) .* cos(beta6_h .* (x_coord - x2));
+        % By6_x (29b)
+        By_xv =  (c6_h  .* sh(beta6_h .* (y3 - y_coord)) / sh(beta6_h .* Ty6) + ...
+            d6_h .* sh(beta6_h .* (y_coord - y2)) / sh(beta6_h .* Ty6)) .* sin(beta6_h .* (x_coord - x2));
+        
+        n6 = 1:N6max;
+        e6_n = IC(ic_idx_map.R6_e)';
+        f6_n = IC(ic_idx_map.R6_f)';
+        lambda6_n = n6 .* pi / Ty6;
+        
+        % Bx6_y (28c)
+        Bx_yv =  (e6_n .* ch(lambda6_n .* (x_coord - x2)) / sh(lambda6_n .* Tx6) - ...
+            f6_n .* ch(lambda6_n .* (x3 - x_coord)) / sh(lambda6_n .* Tx6)) .* cos(lambda6_n .* (y_coord - y2));
+        % By6_y (29c)
+        By_yv = + (e6_n .* sh(lambda6_n .* (x_coord - x2)) / sh(lambda6_n .* Tx6) + ...
+            f6_n .* sh(lambda6_n .* (x3 - x_coord)) / sh(lambda6_n .* Tx6)) .* sin(lambda6_n .* (y_coord - y2));
         
         
         % Add particular solution components
         BxP6_val = -mu6 .* Jz6 .* y_coord; % BxP6 (28d)
         ByP6_val = 0; % ByP6 (29d)
         
-
+        
         Bx = sum(Bx_xv) - sum(Bx_yv) + BxP6_val + Bx_x0;
         By = sum(By_xv) + sum(By_yv) + ByP6_val;
         
@@ -351,30 +351,30 @@ switch region_id
         d7_0 = IC(ic_idx_map.R7_d0);
         Bx_x0 = (-c7_0 + d7_0); % From (33b) for h=0
         
-            h7 = 1:H7max;
-            c7_h = IC(ic_idx_map.R7_c)';
-            d7_h = IC(ic_idx_map.R7_d)';
-            beta7_h = h7 .* pi / Tx7;
-            
-            % Bx7_x (33b)
-            Bx_xv = (-c7_h .* ch(beta7_h .* (y3 - y_coord)) / sh(beta7_h .* Ty7) + ...
-                d7_h .* ch(beta7_h .* (y_coord - y2)) / sh(beta7_h .* Ty7)) .* cos(beta7_h .* (x_coord - x4));
-            % By7_x (34b)
-            By_xv =  (c7_h .* beta7_h .* sh(beta7_h .* (y3 - y_coord)) / sh(beta7_h .* Ty7) + ...
-                d7_h .* beta7_h .* sh(beta7_h .* (y_coord - y2)) / sh(beta7_h .* Ty7)) .* sin(beta7_h .* (x_coord - x4));
-
-            n7 = 1:N7max;
-            e7_n = IC(ic_idx_map.R7_e)';
-            f7_n = IC(ic_idx_map.R7_f)';
-            lambda7_n = n7 .* pi / Ty7;
-            
-
-            % Bx7_y (33c)
-            Bx_yv =  (e7_n .* lambda7_n .* sh(lambda7_n .* (x_coord - x4)) / sh(lambda7_n .* Tx7) - ...
-                f7_n .* lambda7_n .* sh(lambda7_n .* (x5 - x_coord)) / sh(lambda7_n .* Tx7)) .* cos(lambda7_n .* (y_coord - y2));
-            % By7_y (34c)
-            By_yv = + (e7_n .* ch(lambda7_n .* (x_coord - x4)) / sh(lambda7_n .* Tx7) + ...
-                f7_n .* ch(lambda7_n .* (x5 - x_coord)) / sh(lambda7_n .* Tx7)) .* sin(lambda7_n .* (y_coord - y2));
+        h7 = 1:H7max;
+        c7_h = IC(ic_idx_map.R7_c)';
+        d7_h = IC(ic_idx_map.R7_d)';
+        beta7_h = h7 .* pi / Tx7;
+        
+        % Bx7_x (33b)
+        Bx_xv = (-c7_h .* ch(beta7_h .* (y3 - y_coord)) / sh(beta7_h .* Ty7) + ...
+            d7_h .* ch(beta7_h .* (y_coord - y2)) / sh(beta7_h .* Ty7)) .* cos(beta7_h .* (x_coord - x4));
+        % By7_x (34b)
+        By_xv =  (c7_h  .* sh(beta7_h .* (y3 - y_coord)) / sh(beta7_h .* Ty7) + ...
+            d7_h  .* sh(beta7_h .* (y_coord - y2)) / sh(beta7_h .* Ty7)) .* sin(beta7_h .* (x_coord - x4));
+        
+        n7 = 1:N7max;
+        e7_n = IC(ic_idx_map.R7_e)';
+        f7_n = IC(ic_idx_map.R7_f)';
+        lambda7_n = n7 .* pi / Ty7;
+        
+        
+        % Bx7_y (33c)
+        Bx_yv =  (e7_n  .* ch(lambda7_n .* (x_coord - x4)) / sh(lambda7_n .* Tx7) - ...
+            f7_n  .* ch(lambda7_n .* (x5 - x_coord)) / sh(lambda7_n .* Tx7)) .* cos(lambda7_n .* (y_coord - y2));
+        % By7_y (34c)
+        By_yv = + (e7_n .* sh(lambda7_n .* (x_coord - x4)) / sh(lambda7_n .* Tx7) + ...
+            f7_n .* sh(lambda7_n .* (x5 - x_coord)) / sh(lambda7_n .* Tx7)) .* sin(lambda7_n .* (y_coord - y2));
         
         
         % Add particular solution components
@@ -441,38 +441,128 @@ grid on;
 hold off;
 
 % Path 2: y = ((y1 + y4) / 2), x from x1 to x6 (Figure 7)
-num_points = 1000;
-x_path1 = linspace(x1, x6, num_points);
-y_path1 = ((y1 + y4) / 2) .* ones(1, num_points);
+num_points = 200;
+x_path1 = linspace(x3, x4, num_points);
+y_path1 = ((y2+y3)/2) .* ones(1, num_points);
 Bx_path1 = zeros(1, num_points);
 By_path1 = zeros(1, num_points);
 
 fprintf('\n--- 计算 Path 2 上的磁通密度 ---\n');
 for i = 1:num_points
     % Path 2 位于 Region 3,6,5,7,4
-    if x_path1(i) > x1 &&  x_path1(i) < x2
+    if x_path1(i) >= x1 &&  x_path1(i) <= x2
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 3, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
-    elseif x_path1(i) > x2 &&  x_path1(i) < x3
+    elseif x_path1(i) > x2 &&  x_path1(i) <= x3
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 6, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
-    elseif x_path1(i) > x3 &&  x_path1(i) < x4
+    elseif x_path1(i) > x3 &&  x_path1(i) <= x4
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 5, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
-    elseif x_path1(i) > x4 &&  x_path1(i) < x5
+    elseif x_path1(i) > x4 &&  x_path1(i) <= x5
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 7, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
-    elseif x_path1(i) > x5 &&  x_path1(i) < x6
+    elseif x_path1(i) > x5 &&  x_path1(i) <= x6
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 4, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
     end
 end
 
 figure;
-plot(x_path1 .* num_points, Bx_path1, 'b-', 'DisplayName', 'Bx (Subdomain Model)');
+plot(x_path1, Bx_path1, 'b-', 'DisplayName', 'Bx (Subdomain Model)');
 hold on;
-plot(x_path1 .* num_points, By_path1, 'r--', 'DisplayName', 'By (Subdomain Model)');
-xlabel('Length of Path 1 [cm]');
+plot(x_path1, By_path1, 'r--', 'DisplayName', 'By (Subdomain Model)');
+xlabel('Length of Path 2 [cm]');
 ylabel('Magnetic Flux Density [T]');
 title('Magnetic Flux Density along Path 1');
 legend('show');
 grid on;
 hold off;
+
+
+% Path 3: x = ((x1 + x2) / 2), y from y1 to y4 (Figure 7)
+num_points = 1000;
+x_path1 = ((x2 + x3) / 2) .* ones(1, num_points);
+y_path1 = linspace(y1, y4, num_points);
+Bx_path1 = zeros(1, num_points);
+By_path1 = zeros(1, num_points);
+
+fprintf('\n--- 计算 Path 3 上的磁通密度 ---\n');
+for i = 1:num_points
+    % Path 3 位于 Region 1 3 2
+    if y_path1(i) > y1 &&  y_path1(i) <= y2
+        [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 1, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
+    elseif y_path1(i) > y2 &&  y_path1(i) <= y3
+        [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 6, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
+    elseif y_path1(i) > y3 &&  y_path1(i) <= y4
+        [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 2, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
+    end
+end
+
+figure;
+plot(y_path1, Bx_path1, 'b-', 'DisplayName', 'Bx (Subdomain Model)');
+hold on;
+plot(y_path1, By_path1, 'r--', 'DisplayName', 'By (Subdomain Model)');
+xlabel('Length of Path 3 [cm]');
+ylabel('Magnetic Flux Density [T]');
+title('Magnetic Flux Density along Path 3');
+legend('show');
+grid on;
+hold off;
+
+
+% ======== Path 2: Scan all y between y2 and y3 ========
+num_points_x = 200;  % X 上采样数
+num_points_y = 150;  % Y 上采样数
+
+x_vals = linspace(x1, x6, num_points_x);
+y_vals = linspace(y1, y4, num_points_y);
+
+[Bx_3D, By_3D] = deal(zeros(num_points_y, num_points_x));
+
+fprintf('\n=== 扫描 Path 2 区域上的磁通密度 (3D) ===\n');
+
+for iy = 1:num_points_y
+    for ix = 1:num_points_x
+        x_tmp = x_vals(ix);
+        y_tmp = y_vals(iy);
+        
+        if y_tmp >= y1 && y_tmp <= y2
+            region = 1;
+        elseif y_tmp >= y3 && y_tmp <= y4
+            region = 2;
+        else
+            if x_tmp >= x1 && x_tmp <= x2
+                region = 3;
+            elseif x_tmp > x2 && x_tmp <= x3
+                region = 6;
+            elseif x_tmp > x3 && x_tmp <= x4
+                region = 5;
+            elseif x_tmp > x4 && x_tmp <= x5
+                region = 7;
+            elseif x_tmp > x5 && x_tmp <= x6
+                region = 4;
+            else
+                continue
+            end
+        end
+        [~, Bx_3D(iy,ix), By_3D(iy,ix)] = ...
+            calculate_magnetic_field(x_tmp, y_tmp, IC, region, ...
+            H1max,H2max,H3max,H4max,H5max,H6max,H7max, ...
+            N3max,N4max,N5max,N6max,N7max, mu6,mu7, Jz6,Jz7);
+    end
+end
+
+% ======== 绘制 3D 面图 ========
+figure;
+[Xgrid, Ygrid] = meshgrid(x_vals, y_vals);
+
+surf(Xgrid, Ygrid, Bx_3D, 'EdgeColor', 'none');
+xlabel('x [cm]');
+ylabel('y [cm]');
+zlabel('By [T]');
+title('3D Magnetic Flux Density By across Path 2 area');
+colorbar;
+shading interp;
+view(45, 35);
+grid on;
+
+
 
 % --- 辅助函数定义 (sh, ch, coth, csch) ---
 function val = sh(x), val = sinh(x); end

@@ -1,5 +1,12 @@
-syms n_4 n_7 y 'real';
-f_ny_7(n_4, n_7) = int((sin((pi.*n_4.*(y - 100))/40).*sin((pi.*n_7.*(y - 100))/40).*cosh((5.*pi.*n_4)/2))/sinh((5.*pi.*n_4)/2), y, 100, 140, 'Hold', true)/20;
-a = simplifyFraction(f_ny_7)
-b = simplify(f_ny_7)
-% d = subs(a, {n_4, n_7}, {1,1})
+Tx1 = 0.28;
+Ty1 = 0.1;
+Tx3 = 0.1;
+Ty3 = 0.04;
+beta3_h3 = pi / Tx3 ;
+beta1_h1 = pi / Tx1;
+
+syms x real;
+
+val = (2 / Tx1) * coth(beta3_h3 * Ty3) * int(sin(beta3_h3*(x-x1))*sin(beta1_h1*(x-x1)), x1, Tx3);
+
+disp(double(val));

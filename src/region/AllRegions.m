@@ -10,11 +10,16 @@ classdef AllRegions < handle
         
         % all_H_max = [1; 1; 1; 1; 1; 1; 1];
         % all_N_max = [1; 1; 1; 1; 1; 1; 1];
+        
+        % all_H_max = [2;2;2;2;2;2;2];
+        % all_N_max = [2;2;2;2;2;2;2];
         Jz6 = -1600 .* 5 / (800 .* 1e-6); % Region 6 的电流密度
         Jz7 = 1600 .* 5 / (800 .* 1e-6); % Region 7 的电流密度 (反向)
-
-        all_mu_r = [1;1;1;1;1;1;1];
-        all_J_r = [0;0;0;0;0;-1600 .* 5 / 800e-6;1600 .* 5 / 800e-6];
+        
+        all_mu_r = [1;1;1;1;1500;1;1];
+        all_J_r = [0;0;0;0;0;1e7;-1e7];
+        
+        len_IC = [60;60;180;180;240;242;242];
     end
     
     methods
@@ -47,47 +52,52 @@ classdef AllRegions < handle
             disp("计算BC方程完成");
             save("BC.mat", 'BC');
             
+            writematrix(BC, 'BC_S.xlsx');
+            writematrix(ES, 'ES_S.xlsx');
             % IC = BC \ ES;
             IC = lsqr(BC, ES, 1e-6, 1000);
             % IC = pcg(BC, ES, 1e-12, 10000);
             
             save("IC.mat", 'IC');
+            
+            obj.plot_figures(IC);
+            
         end
         
         
         function set_all_regions(obj)
             %% 区域 1
-            obj.regions{1} = Region(1, CaseType.BTAir, 0, 280, 0, 100, ...
+            obj.regions{1} = Region(1, CaseType.BTAir, 0, 0.280, 0, 0.100, ...
                 BC_TYPE.BBAA, [3,4,5,6,7],[],[],[],[6,7], obj.all_H_max(1), obj.all_N_max(1), obj.all_mu_r(1), obj.all_J_r(1), obj.region_num);
             obj.regions{1}.get_region_solution_func();
             
             %% 区域 2
-            obj.regions{2} = Region(2, CaseType.BTAir, 0, 280, 140, 240, ...
+            obj.regions{2} = Region(2, CaseType.BTAir, 0, 0.280, 0.140, 0.240, ...
                 BC_TYPE.BBAA, [], [3,4,5,6,7],[],[],[6,7], obj.all_H_max(2), obj.all_N_max(2), obj.all_mu_r(2), obj.all_J_r(2), obj.region_num);
             obj.regions{2}.get_region_solution_func();
             
             %% 区域 3
-            obj.regions{3} = Region(3, CaseType.NormalAir, 0, 100, 100, 140, ...
+            obj.regions{3} = Region(3, CaseType.NormalAir, 0, 0.100, 0.100, 0.140, ...
                 BC_TYPE.AAAA, [2],[1],[],[6],[6,7], obj.all_H_max(3), obj.all_N_max(3), obj.all_mu_r(3), obj.all_J_r(3), obj.region_num);
             obj.regions{3}.get_region_solution_func();
             
             %% 区域 4
-            obj.regions{4} = Region(4, CaseType.NormalAir, 180, 280, 100, 140, ...
+            obj.regions{4} = Region(4, CaseType.NormalAir, 0.180, 0.280, 0.100, 0.140, ...
                 BC_TYPE.AAAA, [2],[1],[7],[],[6,7], obj.all_H_max(4), obj.all_N_max(4), obj.all_mu_r(4), obj.all_J_r(4), obj.region_num);
             obj.regions{4}.get_region_solution_func();
             
             %% 区域 5
-            obj.regions{5} = Region(3, CaseType.NormalAir, 120, 160, 100, 140, ...
+            obj.regions{5} = Region(5, CaseType.NormalAir, 0.120, 0.160, 0.100, 0.140, ...
                 BC_TYPE.AAAA, [2],[1],[6],[7],[6,7], obj.all_H_max(5), obj.all_N_max(5), obj.all_mu_r(5), obj.all_J_r(5), obj.region_num);
             obj.regions{5}.get_region_solution_func();
             
             %% 区域6
-            obj.regions{6} = Region(6, CaseType.FerriteCurrent, 100, 120, 100, 140, ...
+            obj.regions{6} = Region(6, CaseType.FerriteCurrent, 0.100, 0.120, 0.100, 0.140, ...
                 BC_TYPE.AABB, [2],[1],[3],[5],[6,7], obj.all_H_max(6), obj.all_N_max(6), obj.all_mu_r(6), obj.all_J_r(6), obj.region_num);
             obj.regions{6}.get_region_solution_func();
             
             %% 区域7
-            obj.regions{7} = Region(7, CaseType.FerriteCurrent, 160, 180, 100, 140, ...
+            obj.regions{7} = Region(7, CaseType.FerriteCurrent, 0.160, 0.180, 0.100, 0.140, ...
                 BC_TYPE.AABB, [2],[1],[5],[4],[6,7], obj.all_H_max(7), obj.all_N_max(7), obj.all_mu_r(7), obj.all_J_r(7), obj.region_num);
             obj.regions{7}.get_region_solution_func();
         end
@@ -96,9 +106,8 @@ classdef AllRegions < handle
             BC_funcs = cell(1,7);
             BC_loc = cell(1,7);
             ES_funcs = cell(1,7);
-            regions_tmp = obj.regions;
             parfor i=1:7    % 并行计算所有边界函数
-                [BC_funcs{i}, BC_loc{i}, ES_funcs{i}] = regions_tmp{i}.gen_region_coefficient_func(regions_tmp);
+                [BC_funcs{i}, BC_loc{i}, ES_funcs{i}] = obj.regions{i}.gen_region_coefficient_func(obj.regions);
             end
         end
         
@@ -201,6 +210,7 @@ classdef AllRegions < handle
                 row_hn = idx_case.n;
             end
             
+            % 这里不是按c d e f的顺序，而是按区域编号顺序
             for j=1:length(col_exists)
                 % 找到对应的方程
                 func = funcss{edge_bc_loc(2), col_exists(j)};    % 这是这个idx对应的方程
@@ -236,7 +246,7 @@ classdef AllRegions < handle
                     % expr = subs(rhs(func), {row_hn,col_hn}, {row_idx, col_idx});
                     % Q1 = -double(expr);
                     expr(col_hn) = simplifyFraction(rhs(func));
-                    pretty(func);
+                    % pretty(func);
                     f = matlabFunction((expr), "Vars", {col_hn});
                     Q1 = arrayfun(@(x) -f(x), col_idx);
                     % Q1 = -f(row_idx, col_idx);   % 纯数值运算，超级快
@@ -285,10 +295,10 @@ classdef AllRegions < handle
                         
                         if idx_case.ES_regions(i)   % 如果自己这个区域就是有源项
                             col_idx = 0;
-                            ESxx = double(expr);
+                            ESxx = -double(expr);   % 这里需要加负号
                         else
                             col_idx= 1:col_HN_max;
-                            ESxx = arrayfun(@(h) -f(h), col_idx);
+                            ESxx = arrayfun(@(h) f(h), col_idx);
                         end
                         
                     end
@@ -323,14 +333,160 @@ classdef AllRegions < handle
         
         % 计算某个区域某个点(x0,y0)的Bx与By
         function [Bx, By] = cal_Bx_By(obj, IC, region_num, x0, y0)
-            idx_impl = obj.regions{region_num}.impl;
+            idx_impl = obj.regions{region_num}.impl;    % 当前区域的实例
+            
+            % 找到非0元素的下标，顺序为c0 c d0 d e f
+            coeffs_exists = idx_impl.coeffs_exists;
+            
             H_max = idx_impl.H_max;
             N_max = idx_impl.N_max;
-            d_hx_1 = IC(1:H_max);  % 目前只考虑区域1的
-            syms x y real;
-            Bx_f(idx_impl.d_hx, x, y) = idx_impl.B_xx;
-            By_f(idx_impl.d_hx, x, y) = idx_impl.B_xy;
+            IC_start = sum(obj.len_IC(1:region_num) - obj.len_IC(1)) + 1;
+            IC_end = IC_start + obj.len_IC(region_num) - 1;
+            ICs = IC(IC_start:IC_end);
             
+            Bx_x_expr = idx_impl.B_x_x;    % c d c0 d0
+            Bx_y_expr = idx_impl.B_x_y;    % e f
+            By_x_expr = idx_impl.B_y_x;    % c d
+            By_y_expr = idx_impl.B_y_y;    % e f
+            
+            c_0x = (idx_impl.c_0x);   % 将 idx_impl.c_0x 转换为符号变量
+            c_hx = (idx_impl.c_hx);   % 将 idx_impl.c_hx 转换为符号变量
+            d_0x = (idx_impl.d_0x);   % 将 idx_impl.d_0x 转换为符号变量
+            d_hx = (idx_impl.d_hx);   % 将 idx_impl.d_hx 转换为符号变量
+            e_ny = (idx_impl.e_ny);   % 将 idx_impl.e_ny 转换为符号变量
+            f_ny = (idx_impl.f_ny);   % 将 idx_impl.f_ny 转换为符号变量
+            
+            % 假设 idx_impl 中的成员需要转换为符号变量
+            h = sym(idx_impl.h);         % 将 idx_impl.h 转换为符号变量
+            n = sym(idx_impl.n);         % 将 idx_impl.n 转换为符号变量
+            syms x y real;
+            
+            hx = (1:H_max)';
+            nx = (1:N_max)';
+            x0h = ones(H_max,1) .* x0;
+            y0h = ones(H_max,1) .* y0;
+            x0n = ones(N_max,1) .* x0;
+            y0n = ones(N_max,1) .* y0;
+            
+            Bx_x_c0 = 0;
+            Bx_x_c = 0;
+            By_x_c = 0;
+            Bx_x_d0 = 0;
+            Bx_x_d = 0;
+            By_x_d = 0;
+            Bx_y_e = 0;
+            By_y_e = 0;
+            Bx_y_f = 0;
+            By_y_f = 0;
+            
+            
+            ICs_idx_s = 1;    % 当前取到的下标
+            ICs_idx_e = 1;
+            for i=1:length(coeffs_exists)
+                if coeffs_exists(i)
+                    switch i
+                        case 1
+                            c0 = ICs(ICs_idx_s);
+                            ICs_idx_s = ICs_idx_s + 1;
+                            
+                            Bx_x_c0 = -c0;
+                        case 2
+                            ICs_idx_e = ICs_idx_s + H_max -1;
+                            cx = ICs(ICs_idx_s:ICs_idx_e);
+                            ICs_idx_s = ICs_idx_e;
+                            
+                            expr = subs(Bx_x_expr, {c_0x, d_0x, d_hx}, {0, 0, 0});
+                            f = matlabFunction(expr, "Vars", {c_hx, h, x, y});
+                            Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
+                            Bx_x_c = sum(Q);
+                            
+                            expr = subs(By_x_expr, {c_0x, d_0x, d_hx}, {0, 0, 0});
+                            f = matlabFunction(expr, "Vars", {c_hx, h, x, y});
+                            Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
+                            By_x_c = sum(Q);
+                        case 3
+                            d0 = ICs(ICs_idx_s);
+                            ICs_idx_s = ICs_idx_s + 1;
+                            
+                            Bx_x_d0 = d0;
+                        case 4
+                            ICs_idx_e = ICs_idx_s + H_max -1;
+                            dx = ICs(ICs_idx_s:ICs_idx_e);
+                            ICs_idx_s = ICs_idx_e;
+                            
+                            expr = subs(Bx_x_expr, {c_0x, c_hx, d_0x}, {0, 0, 0});
+                            f = matlabFunction(expr, "Vars", {d_hx, h, x, y});
+                            Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
+                            Bx_x_d = sum(Q);
+                            
+                            expr = subs(By_x_expr, {c_0x, c_hx, d_0x}, {0, 0, 0});
+                            f = matlabFunction(expr, "Vars", {d_hx, h, x, y});
+                            Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
+                            By_x_d = sum(Q);
+                        case 5
+                            ICs_idx_e = ICs_idx_s + N_max -1;
+                            ex = ICs(ICs_idx_s:ICs_idx_e);
+                            ICs_idx_s = ICs_idx_e;
+                            
+                            expr = subs(Bx_y_expr, f_ny, 0);
+                            f = matlabFunction(expr, "Vars", {e_ny, n, x, y});
+                            Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
+                            Bx_y_e = sum(Q);
+                            
+                            expr = subs(By_y_expr, f_ny, 0);
+                            f = matlabFunction(expr, "Vars", {e_ny, n, x, y});
+                            Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
+                            By_y_e = sum(Q);
+                        case 6
+                            ICs_idx_e = ICs_idx_s + N_max -1;
+                            fx = ICs(ICs_idx_s:ICs_idx_e);
+                            ICs_idx_s = ICs_idx_e;
+                            
+                            expr = subs(Bx_y_expr, e_ny, 0);
+                            f = matlabFunction(expr, "Vars", {f_ny, n, x, y});
+                            Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
+                            Bx_y_f = sum(Q);
+                            
+                            expr = subs(By_y_expr, e_ny, 0);
+                            f = matlabFunction(expr, "Vars", {f_ny, n, x, y});
+                            Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
+                            By_y_f = sum(Q);
+                    end
+                end
+            end
+            
+            
+            
+            Bx = Bx_x_c0 + Bx_x_c + Bx_x_d0 + Bx_x_d + Bx_y_e + Bx_y_f;
+            By = By_x_c + By_x_d + By_y_e + By_y_f;
+            
+            if coeffs_exists(1) % 如果存在c0或d0，说明这个区域是一个有源区域，需要加上B_x_P
+                B_x_P_v = subs(idx_impl.B_x_P, y, y0);
+                Bx = Bx + double(B_x_P_v);
+            end
+        end
+        
+        function plot_figures(obj, IC)
+            points = 200;
+            x0 = 0.14 .* ones(1,points);
+            y0 = linspace(0,0.240,points);
+            Bx = zeros(1,points);
+            By = zeros(1,points);
+            
+            for i=1:points
+                if y0(i) > 0 && y0(i) <= 0.1
+                    [Bx(i), By(i)] = obj.cal_Bx_By(IC, 1, x0(i), y0(i));
+                elseif y0(i) > 0.1 && y0(i) <= 0.14
+                    [Bx(i), By(i)] = obj.cal_Bx_By(IC, 5, x0(i), y0(i));
+                elseif y0(i) > 0.14 && y0(i) <= 0.24
+                    [Bx(i), By(i)] = obj.cal_Bx_By(IC, 2, x0(i), y0(i));
+                end
+            end
+            
+            figure;
+            plot(y0,Bx);    hold on;
+            plot(y0,By);
+            grid on;
         end
         
     end

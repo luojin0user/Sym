@@ -5,7 +5,7 @@ BC = t1.BC;
 ES = t2.ES;
 BCx = sparse(BC);
 
-IC = lsqr(BCx, ES, 1e-6, 100);
+IC = lsqr(BCx, ES, 1e-6, 1000);
 
 
 save("IC.mat",'IC');

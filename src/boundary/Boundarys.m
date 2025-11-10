@@ -247,8 +247,8 @@ classdef Boundarys < handle
                         top_idx = obj.top(1);
                         [coeffs, eqT] = obj.genAA(top_idx);
                         for i = 1:length(eqT)
-                            eqT{i} = eqT{i} * obj.case_impl.beta_h;  % 乘以 beta_h
                             eqT{i} = subs(eqT{i}, y, obj.case_impl.yt);
+                            eqT{i} = eqT{i} * obj.case_impl.beta_h;  % 乘以 beta_h
                         end
                         obj.case_impl.T_funcs = eqT;
                         obj.BCfuncs_loc(:,top_idx) = [1;BCfuncs_loc_num];
@@ -476,11 +476,11 @@ classdef Boundarys < handle
         end
         
         function F1 = getBB_func(obj, edge_impl, x_or_y, cd_or_ef)
-            if( x_or_y == 1)
+            if( x_or_y == 1)    % 上下边界为x，左右为y
                 if cd_or_ef == 1
-                    F1 = edge_impl.B_x_x;
+                    F1 = edge_impl.B_x_x;% 只含c d项
                 else
-                    F1 = edge_impl.B_y_x;
+                    F1 = edge_impl.B_y_x;   % 只含c d项
                 end
             else
                 if cd_or_ef == 1
