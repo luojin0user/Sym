@@ -16,7 +16,7 @@ classdef AllRegions < handle
         Jz6 = -1600 .* 5 / (800 .* 1e-6); % Region 6 的电流密度
         Jz7 = 1600 .* 5 / (800 .* 1e-6); % Region 7 的电流密度 (反向)
         
-        all_mu_r = [1;1;1;1;1500;1;1];
+        all_mu_r = [1;1;1;1;1;1;1];
         all_J_r = [0;0;0;0;0;1e7;-1e7];
         
         len_IC = [60;60;180;180;240;242;242];
@@ -54,8 +54,8 @@ classdef AllRegions < handle
             
             writematrix(BC, 'BC_S.xlsx');
             writematrix(ES, 'ES_S.xlsx');
-            % IC = BC \ ES;
-            IC = lsqr(BC, ES, 1e-6, 1000);
+            IC = BC \ ES;
+            % IC = lsqr(BC, ES, 1e-6, 1000);
             % IC = pcg(BC, ES, 1e-12, 10000);
             
             save("IC.mat", 'IC');
@@ -224,8 +224,6 @@ classdef AllRegions < handle
                 [row_idx, col_idx] = ndgrid(1:rows_len(i), 1:cols_len(j));
                 % 计算这个矩阵的值
                 % 需要先代入数据
-                % expr = subs(rhs(func), {row_hn,col_hn}, {row_idx, col_idx});
-                % Q = -double(expr);
                 expr(row_hn, col_hn) = simplifyFraction(rhs(func));
                 f = matlabFunction((expr), "Vars", {row_hn, col_hn});
                 Q = arrayfun(@(x,y) -f(x,y), row_idx, col_idx);
@@ -241,6 +239,8 @@ classdef AllRegions < handle
                 if edge_bc_loc(1) <= 4 && row_has_cd0x % 如果现在计算的是c或者d，才需要进入这里计算
                     func = funcss{edge_bc_loc(2)-1, col_exists(j)}; % 目前而言，c0/d0方程就是对应c或d的方程的前一个
                     col_idx = 1:cols_len(j);   % 行数为1
+                    
+                    
                     % row_idx = zeros(1, cols_len(j));
                     % 计算这个矩阵的值
                     % expr = subs(rhs(func), {row_hn,col_hn}, {row_idx, col_idx});
@@ -386,7 +386,7 @@ classdef AllRegions < handle
                 if coeffs_exists(i)
                     switch i
                         case 1
-                            c0 = ICs(ICs_idx_s);
+                            c0 = ICs(ICs_idx_s:ICs_idx_s);
                             ICs_idx_s = ICs_idx_s + 1;
                             
                             Bx_x_c0 = -c0;
@@ -405,7 +405,7 @@ classdef AllRegions < handle
                             Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
                             By_x_c = sum(Q);
                         case 3
-                            d0 = ICs(ICs_idx_s);
+                            d0 = ICs(ICs_idx_s:ICs_idx_s);
                             ICs_idx_s = ICs_idx_s + 1;
                             
                             Bx_x_d0 = d0;
@@ -473,7 +473,7 @@ classdef AllRegions < handle
             Bx = zeros(1,points);
             By = zeros(1,points);
             
-            for i=1:points
+            parfor i=1:points
                 if y0(i) > 0 && y0(i) <= 0.1
                     [Bx(i), By(i)] = obj.cal_Bx_By(IC, 1, x0(i), y0(i));
                 elseif y0(i) > 0.1 && y0(i) <= 0.14
