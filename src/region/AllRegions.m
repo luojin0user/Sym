@@ -16,7 +16,7 @@ classdef AllRegions < handle
         Jz6 = -1600 .* 5 / (800 .* 1e-6); % Region 6 的电流密度
         Jz7 = 1600 .* 5 / (800 .* 1e-6); % Region 7 的电流密度 (反向)
         
-        all_mu_r = [1;1;1;1;1;1;1];
+        all_mu_r = [1;1;1;1;1500;1;1];
         all_J_r = [0;0;0;0;0;1e7;-1e7];
         
         len_IC = [60;60;180;180;240;242;242];
@@ -52,15 +52,12 @@ classdef AllRegions < handle
             disp("计算BC方程完成");
             save("BC.mat", 'BC');
             
-            writematrix(BC, 'BC_S.xlsx');
-            writematrix(ES, 'ES_S.xlsx');
-            IC = BC \ ES;
-            % IC = lsqr(BC, ES, 1e-6, 1000);
-            % IC = pcg(BC, ES, 1e-12, 10000);
-            
+            % IC = BC \ ES;
+            IC = lsqr(BC, ES, 1e-6, 1000);
+            disp("计算IC方程完成");
             save("IC.mat", 'IC');
             
-            obj.plot_figures(IC);
+            % obj.plot_figures(IC);
             
         end
         
@@ -393,7 +390,7 @@ classdef AllRegions < handle
                         case 2
                             ICs_idx_e = ICs_idx_s + H_max -1;
                             cx = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e;
+                            ICs_idx_s = ICs_idx_e + 1;
                             
                             expr = subs(Bx_x_expr, {c_0x, d_0x, d_hx}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {c_hx, h, x, y});
@@ -412,7 +409,7 @@ classdef AllRegions < handle
                         case 4
                             ICs_idx_e = ICs_idx_s + H_max -1;
                             dx = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e;
+                            ICs_idx_s = ICs_idx_e + 1;
                             
                             expr = subs(Bx_x_expr, {c_0x, c_hx, d_0x}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {d_hx, h, x, y});
@@ -426,7 +423,7 @@ classdef AllRegions < handle
                         case 5
                             ICs_idx_e = ICs_idx_s + N_max -1;
                             ex = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e;
+                            ICs_idx_s = ICs_idx_e + 1;
                             
                             expr = subs(Bx_y_expr, f_ny, 0);
                             f = matlabFunction(expr, "Vars", {e_ny, n, x, y});
@@ -440,7 +437,7 @@ classdef AllRegions < handle
                         case 6
                             ICs_idx_e = ICs_idx_s + N_max -1;
                             fx = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e;
+                            ICs_idx_s = ICs_idx_e + 1;
                             
                             expr = subs(Bx_y_expr, e_ny, 0);
                             f = matlabFunction(expr, "Vars", {f_ny, n, x, y});
@@ -473,7 +470,7 @@ classdef AllRegions < handle
             Bx = zeros(1,points);
             By = zeros(1,points);
             
-            parfor i=1:points
+            for i=1:points
                 if y0(i) > 0 && y0(i) <= 0.1
                     [Bx(i), By(i)] = obj.cal_Bx_By(IC, 1, x0(i), y0(i));
                 elseif y0(i) > 0.1 && y0(i) <= 0.14

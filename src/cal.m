@@ -42,7 +42,7 @@ mu1 = mu_air;
 mu2 = mu_air;
 mu3 = mu_air;
 mu4 = mu_air;
-mu5 = mu_air; % Region 5 是铁芯
+mu5 = mu_iron; % Region 5 是铁芯
 mu6 = mu_air; % Region 6 是线圈导体区域 (铜线，但考虑为空气磁导率)
 mu7 = mu_air; % Region 7 是线圈导体区域 (铜线，但考虑为空气磁导率)
 
@@ -553,7 +553,7 @@ hold on;
 plot(x_path1, By_path1, 'r--', 'DisplayName', 'By (Subdomain Model)');
 xlabel('Length of Path 2 [cm]');
 ylabel('Magnetic Flux Density [T]');
-title('Magnetic Flux Density along Path 1');
+title('Magnetic Flux Density along Path 2');
 legend('show');
 grid on;
 hold off;
@@ -561,18 +561,18 @@ hold off;
 
 % Path 3: x = ((x1 + x2) / 2), y from y1 to y4 (Figure 7)
 num_points = 1000;
-x_path1 = ((x3 + x4) / 2) .* ones(1, num_points);
+x_path1 = ((x2 + x3) / 2) .* ones(1, num_points);
 y_path1 = linspace(y1, y4, num_points);
 Bx_path1 = zeros(1, num_points);
 By_path1 = zeros(1, num_points);
 
-fprintf('\n--- 计算 Path 3 上的磁通密度 ---\n');
+fprintf('\n--- 计算 Path 4 上的磁通密度 ---\n');
 for i = 1:num_points
     % Path 3 位于 Region 1 3 2
     if y_path1(i) > y1 &&  y_path1(i) <= y2
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 1, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
     elseif y_path1(i) > y2 &&  y_path1(i) <= y3
-        [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 5, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
+        [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 6, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
     elseif y_path1(i) > y3 &&  y_path1(i) <= y4
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 2, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
     end
@@ -582,9 +582,9 @@ figure;
 plot(y_path1, Bx_path1, 'b-', 'DisplayName', 'Bx (Subdomain Model)');
 hold on;
 plot(y_path1, By_path1, 'r--', 'DisplayName', 'By (Subdomain Model)');
-xlabel('Length of Path 3 [cm]');
+xlabel('Length of Path 4+ [cm]');
 ylabel('Magnetic Flux Density [T]');
-title('Magnetic Flux Density along Path 3');
+title('Magnetic Flux Density along Path 4');
 legend('show');
 grid on;
 hold off;
@@ -640,12 +640,25 @@ surf(Xgrid, Ygrid, By_3D, 'EdgeColor', 'none');
 xlabel('x [cm]');
 ylabel('y [cm]');
 zlabel('By [T]');
-title('3D Magnetic Flux Density By across Path 2 area');
+title('3D Magnetic Flux Density By');
 colorbar;
 shading interp;
 view(45, 35);
 grid on;
 
+
+figure;
+[Xgrid, Ygrid] = meshgrid(x_vals, y_vals);
+
+surf(Xgrid, Ygrid, Bx_3D, 'EdgeColor', 'none');
+xlabel('x [cm]');
+ylabel('y [cm]');
+zlabel('By [T]');
+title('3D Magnetic Flux Density Bx');
+colorbar;
+shading interp;
+view(45, 35);
+grid on;
 
 
 % --- 辅助函数定义 (sh, ch, coth, csch) ---
