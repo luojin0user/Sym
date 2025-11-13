@@ -20,6 +20,17 @@ classdef AllRegions < handle
         all_J_r = [0;0;0;0;0;1e7;-1e7];
         
         len_IC = [60;60;180;180;240;242;242];
+        
+        % 区域，每一行是一个矩形区域
+        regions_area = [
+            0, 0.280, 0, 0.100;
+            0, 0.280, 0.140, 0.240;
+            0, 0.100, 0.100, 0.140;
+            0.180, 0.280, 0.100, 0.140;
+            0.120, 0.160, 0.100, 0.140;
+            0.100, 0.120, 0.100, 0.140;
+            0.160, 0.180, 0.100, 0.140;
+            ];
     end
     
     methods
@@ -57,44 +68,45 @@ classdef AllRegions < handle
             disp("计算IC方程完成");
             save("IC.mat", 'IC');
             
-            % obj.plot_figures(IC);
+            ICs = obj.split_IC(IC);
+            obj.plot_figures(ICs);
             
         end
         
         
         function set_all_regions(obj)
             %% 区域 1
-            obj.regions{1} = Region(1, CaseType.BTAir, 0, 0.280, 0, 0.100, ...
+            obj.regions{1} = Region(1, CaseType.BTAir, obj.regions_area(1,:), ...
                 BC_TYPE.BBAA, [3,4,5,6,7],[],[],[],[6,7], obj.all_H_max(1), obj.all_N_max(1), obj.all_mu_r(1), obj.all_J_r(1), obj.region_num);
             obj.regions{1}.get_region_solution_func();
             
             %% 区域 2
-            obj.regions{2} = Region(2, CaseType.BTAir, 0, 0.280, 0.140, 0.240, ...
+            obj.regions{2} = Region(2, CaseType.BTAir, obj.regions_area(2,:), ...
                 BC_TYPE.BBAA, [], [3,4,5,6,7],[],[],[6,7], obj.all_H_max(2), obj.all_N_max(2), obj.all_mu_r(2), obj.all_J_r(2), obj.region_num);
             obj.regions{2}.get_region_solution_func();
             
             %% 区域 3
-            obj.regions{3} = Region(3, CaseType.NormalAir, 0, 0.100, 0.100, 0.140, ...
+            obj.regions{3} = Region(3, CaseType.NormalAir, obj.regions_area(3,:), ...
                 BC_TYPE.AAAA, [2],[1],[],[6],[6,7], obj.all_H_max(3), obj.all_N_max(3), obj.all_mu_r(3), obj.all_J_r(3), obj.region_num);
             obj.regions{3}.get_region_solution_func();
             
             %% 区域 4
-            obj.regions{4} = Region(4, CaseType.NormalAir, 0.180, 0.280, 0.100, 0.140, ...
+            obj.regions{4} = Region(4, CaseType.NormalAir, obj.regions_area(4,:) , ...
                 BC_TYPE.AAAA, [2],[1],[7],[],[6,7], obj.all_H_max(4), obj.all_N_max(4), obj.all_mu_r(4), obj.all_J_r(4), obj.region_num);
             obj.regions{4}.get_region_solution_func();
             
             %% 区域 5
-            obj.regions{5} = Region(5, CaseType.NormalAir, 0.120, 0.160, 0.100, 0.140, ...
+            obj.regions{5} = Region(5, CaseType.NormalAir, obj.regions_area(5,:), ...
                 BC_TYPE.AAAA, [2],[1],[6],[7],[6,7], obj.all_H_max(5), obj.all_N_max(5), obj.all_mu_r(5), obj.all_J_r(5), obj.region_num);
             obj.regions{5}.get_region_solution_func();
             
             %% 区域6
-            obj.regions{6} = Region(6, CaseType.FerriteCurrent, 0.100, 0.120, 0.100, 0.140, ...
+            obj.regions{6} = Region(6, CaseType.FerriteCurrent, obj.regions_area(6,:), ...
                 BC_TYPE.AABB, [2],[1],[3],[5],[6,7], obj.all_H_max(6), obj.all_N_max(6), obj.all_mu_r(6), obj.all_J_r(6), obj.region_num);
             obj.regions{6}.get_region_solution_func();
             
             %% 区域7
-            obj.regions{7} = Region(7, CaseType.FerriteCurrent, 0.160, 0.180, 0.100, 0.140, ...
+            obj.regions{7} = Region(7, CaseType.FerriteCurrent, obj.regions_area(7,:), ...
                 BC_TYPE.AABB, [2],[1],[5],[4],[6,7], obj.all_H_max(7), obj.all_N_max(7), obj.all_mu_r(7), obj.all_J_r(7), obj.region_num);
             obj.regions{7}.get_region_solution_func();
         end
@@ -328,18 +340,40 @@ classdef AllRegions < handle
             out(idx) = 2.*h(idx) + 2 + (col_nums(idx)-4).*n(idx);
         end
         
-        % 计算某个区域某个点(x0,y0)的Bx与By
-        function [Bx, By] = cal_Bx_By(obj, IC, region_num, x0, y0)
-            idx_impl = obj.regions{region_num}.impl;    % 当前区域的实例
+        % 用于分割IC矩阵，分割成cell，按c0 c d0 d e f的顺序排列，如果没有则为空
+        function ICs = split_IC(obj, IC)
+            all_regions_num = obj.region_num;
+            ICs = cell(all_regions_num, 6);
+            for i=1:all_regions_num
+                idx_case = obj.regions{i}.impl;     % 当前区域的实例
+                % 找到非0元素的下标，顺序为c0 c d0 d e f
+                coeffs_exists = idx_case.coeffs_exists;
+                H_max = idx_case.H_max;
+                N_max = idx_case.N_max;
+                
+                ic_start = sum(obj.len_IC(1:(i-1))) + 1;   % 当前取到的下标的位置
+                for j=1:length(coeffs_exists)
+                    if coeffs_exists(j)
+                        ic_end = ic_start + (j==1 || j==3)*1 + (j==2 || j==4)*H_max + (j==5 || j==6)*N_max - 1;
+                        ICs{i,j} = IC(ic_start:ic_end);
+                        ic_start = ic_end + 1;
+                    else
+                        ICs{i,j} = [];  % 没有就是空矩阵
+                    end
+                end
+            end
             
-            % 找到非0元素的下标，顺序为c0 c d0 d e f
-            coeffs_exists = idx_impl.coeffs_exists;
+        end
+        
+        
+        % 计算某个区域某个点集(x0,y0)的Bx与By
+        % 需要输入的x0和y0的个数相同，均为行向量（1，n）
+        function [Bx, By] = cal_Bx_By(obj, ICs, region_num, x0, y0)
+            idx_impl = obj.regions{region_num}.impl;    % 当前区域的实例
+            points_num = size(x0, 2);
             
             H_max = idx_impl.H_max;
             N_max = idx_impl.N_max;
-            IC_start = sum(obj.len_IC(1:region_num) - obj.len_IC(1)) + 1;
-            IC_end = IC_start + obj.len_IC(region_num) - 1;
-            ICs = IC(IC_start:IC_end);
             
             Bx_x_expr = idx_impl.B_x_x;    % c d c0 d0
             Bx_y_expr = idx_impl.B_x_y;    % e f
@@ -358,132 +392,141 @@ classdef AllRegions < handle
             n = sym(idx_impl.n);         % 将 idx_impl.n 转换为符号变量
             syms x y real;
             
-            hx = (1:H_max)';
-            nx = (1:N_max)';
-            x0h = ones(H_max,1) .* x0;
-            y0h = ones(H_max,1) .* y0;
-            x0n = ones(N_max,1) .* x0;
-            y0n = ones(N_max,1) .* y0;
-            
-            Bx_x_c0 = 0;
-            Bx_x_c = 0;
-            By_x_c = 0;
-            Bx_x_d0 = 0;
-            Bx_x_d = 0;
-            By_x_d = 0;
-            Bx_y_e = 0;
-            By_y_e = 0;
-            Bx_y_f = 0;
-            By_y_f = 0;
+            hx = repmat((1:H_max)', 1, points_num);
+            nx = repmat((1:N_max)', 1, points_num);
+            x0h = repmat(x0, H_max, 1);
+            y0h = repmat(y0, H_max, 1);
+            x0n = repmat(x0, N_max, 1);
+            y0n = repmat(y0, N_max, 1);
             
             
-            ICs_idx_s = 1;    % 当前取到的下标
-            ICs_idx_e = 1;
-            for i=1:length(coeffs_exists)
-                if coeffs_exists(i)
+            Bx_x_c0 = zeros(1, points_num);
+            Bx_x_c = zeros(1, points_num);
+            By_x_c = zeros(1, points_num);
+            Bx_x_d0 = zeros(1, points_num);
+            Bx_x_d = zeros(1, points_num);
+            By_x_d = zeros(1, points_num);
+            Bx_y_e = zeros(1, points_num);
+            By_y_e = zeros(1, points_num);
+            Bx_y_f = zeros(1, points_num);
+            By_y_f = zeros(1, points_num);
+            
+            ICn = ICs(region_num,:);    % 取出对应的一行
+            for i=1:6
+                if ~isempty(ICn{i})
                     switch i
                         case 1
-                            c0 = ICs(ICs_idx_s:ICs_idx_s);
-                            ICs_idx_s = ICs_idx_s + 1;
-                            
-                            Bx_x_c0 = -c0;
+                            Bx_x_c0 = repmat(-ICn{1}, 1, points_num);
                         case 2
-                            ICs_idx_e = ICs_idx_s + H_max -1;
-                            cx = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e + 1;
+                            cx = repmat(ICn{2}, 1, points_num);
                             
                             expr = subs(Bx_x_expr, {c_0x, d_0x, d_hx}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {c_hx, h, x, y});
                             Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
-                            Bx_x_c = sum(Q);
+                            Bx_x_c = sum(Q, 1); % 对每一列求和
                             
                             expr = subs(By_x_expr, {c_0x, d_0x, d_hx}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {c_hx, h, x, y});
                             Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
-                            By_x_c = sum(Q);
+                            By_x_c = sum(Q, 1);
                         case 3
-                            d0 = ICs(ICs_idx_s:ICs_idx_s);
-                            ICs_idx_s = ICs_idx_s + 1;
-                            
-                            Bx_x_d0 = d0;
+                            Bx_x_d0 = repmat(ICn{3}, 1, points_num);
                         case 4
-                            ICs_idx_e = ICs_idx_s + H_max -1;
-                            dx = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e + 1;
+                            dx = repmat(ICn{4}, 1, points_num);
                             
                             expr = subs(Bx_x_expr, {c_0x, c_hx, d_0x}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {d_hx, h, x, y});
                             Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
-                            Bx_x_d = sum(Q);
+                            Bx_x_d = sum(Q, 1);
                             
                             expr = subs(By_x_expr, {c_0x, c_hx, d_0x}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {d_hx, h, x, y});
                             Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
-                            By_x_d = sum(Q);
+                            By_x_d = sum(Q, 1);
                         case 5
-                            ICs_idx_e = ICs_idx_s + N_max -1;
-                            ex = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e + 1;
+                            ex = repmat(ICn{5}, 1, points_num);
                             
                             expr = subs(Bx_y_expr, f_ny, 0);
                             f = matlabFunction(expr, "Vars", {e_ny, n, x, y});
                             Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
-                            Bx_y_e = sum(Q);
+                            Bx_y_e = sum(Q, 1);
                             
                             expr = subs(By_y_expr, f_ny, 0);
                             f = matlabFunction(expr, "Vars", {e_ny, n, x, y});
                             Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
-                            By_y_e = sum(Q);
+                            By_y_e = sum(Q, 1);
                         case 6
-                            ICs_idx_e = ICs_idx_s + N_max -1;
-                            fx = ICs(ICs_idx_s:ICs_idx_e);
-                            ICs_idx_s = ICs_idx_e + 1;
+                            fx = repmat(ICn{6}, 1, points_num);
                             
                             expr = subs(Bx_y_expr, e_ny, 0);
                             f = matlabFunction(expr, "Vars", {f_ny, n, x, y});
                             Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
-                            Bx_y_f = sum(Q);
+                            Bx_y_f = sum(Q, 1);
                             
                             expr = subs(By_y_expr, e_ny, 0);
                             f = matlabFunction(expr, "Vars", {f_ny, n, x, y});
                             Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
-                            By_y_f = sum(Q);
+                            By_y_f = sum(Q, 1);
                     end
                 end
             end
             
             
-            
             Bx = Bx_x_c0 + Bx_x_c + Bx_x_d0 + Bx_x_d + Bx_y_e + Bx_y_f;
             By = By_x_c + By_x_d + By_y_e + By_y_f;
             
-            if coeffs_exists(1) % 如果存在c0或d0，说明这个区域是一个有源区域，需要加上B_x_P
-                B_x_P_v = subs(idx_impl.B_x_P, y, y0);
-                Bx = Bx + double(B_x_P_v);
+            if ~isempty(ICn{1}) % 如果存在c0或d0，说明这个区域是一个有源区域，需要加上B_x_P
+                B_x_P_v = idx_impl.B_x_P;
+                f = matlabFunction(B_x_P_v, "Vars", {y});
+                Q = arrayfun(@(y) f(y), y0);
+                Bx = Bx + Q;
             end
+            
+            Bx = Bx';
+            By = By';
         end
         
-        function plot_figures(obj, IC)
-            points = 200;
-            x0 = 0.14 .* ones(1,points);
+        function plot_figures(obj, ICs)
+            points = 400;
+            x0 = 0.11 .* ones(1, points);
             y0 = linspace(0,0.240,points);
-            Bx = zeros(1,points);
-            By = zeros(1,points);
             
-            for i=1:points
-                if y0(i) > 0 && y0(i) <= 0.1
-                    [Bx(i), By(i)] = obj.cal_Bx_By(IC, 1, x0(i), y0(i));
-                elseif y0(i) > 0.1 && y0(i) <= 0.14
-                    [Bx(i), By(i)] = obj.cal_Bx_By(IC, 5, x0(i), y0(i));
-                elseif y0(i) > 0.14 && y0(i) <= 0.24
-                    [Bx(i), By(i)] = obj.cal_Bx_By(IC, 2, x0(i), y0(i));
-                end
+            % 注意输入需要是行向量
+            [xs, ys, ids] = split_curve_by_rects_by_points(x0, y0, obj.regions_area);
+            segments_lens = length(ids);   % 分区个数
+            Bxc = cell(1,segments_lens);
+            Byc = cell(1,segments_lens);
+            
+            for i=1:segments_lens
+                [Bxc{i}, Byc{i}] = obj.cal_Bx_By(ICs, ids(i) , xs{i}, ys{i});
             end
             
-            figure;
-            plot(y0,Bx);    hold on;
-            plot(y0,By);
+            Bx = vertcat(Bxc{:});
+            By = vertcat(Byc{:});
+            figure; hold on;
+            plot(y0, Bx, 'b-', 'Color', [0 0 1]); % 蓝色线表示 Bxc
+            plot(y0, By, 'r--', 'Color', [1 0 0]); % 红色线表示 Byc
             grid on;
+            %{
+            % 这里是按区域的，但是不是按顺序的，绘图需要按顺序
+            figure; hold on;
+            
+            % 绘制 Bxc
+            for i = 1:length(Bxc)
+                plot(xs{i}, Bxc{i}, 'b-', 'Color', [0 0 1]); % 蓝色线表示 Bxc
+            end
+            
+            % 绘制 Byc
+            for i = 1:length(Byc)
+                plot(xs{i}, Byc{i}, 'r--', 'Color', [1 0 0]); % 红色线表示 Byc
+            end
+            
+            xlabel('Value');
+            ylabel('Y');
+            title('Bxc 和 Byc 在 Y 上的分布');
+            legend({'Bxc','Byc'});
+            grid on;
+            %}
         end
         
     end

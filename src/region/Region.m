@@ -19,7 +19,7 @@ classdef Region < handle
     end
     
     methods
-        function obj = Region(idx, type, xl, xr, yl, yt, bc_type, top, bottom, left, right, ES_regions, H_max, N_max, mu_r, J_r, all_regions_num)
+        function obj = Region(idx, type, area, bc_type, top, bottom, left, right, ES_regions, H_max, N_max, mu_r, J_r, all_regions_num)
             % 修改可见边信息
             % L/R/T/B 为 bool 值，表示边界是否存在，如果为True，说明这个边界不存在
             obj.Ln = isempty(left);
@@ -30,6 +30,10 @@ classdef Region < handle
             obj.case_type = type;
             obj.idx = idx;
             
+            xl = area(1);
+            xr = area(2);
+            yl = area(3);
+            yt = area(4);
             
             switch type
                 case CaseType.AlleyAir
