@@ -1,4 +1,3 @@
-
 basePath = fileparts(mfilename('fullpath'));
 addpath(genpath(basePath));
 

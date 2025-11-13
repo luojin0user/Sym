@@ -56,20 +56,24 @@ classdef AllRegions < handle
             % 拼接ES矩阵
             ES = obj.splice_ES(ES_funcs);
             disp("计算ES方程完成")
-            save("ES.mat", 'ES');
+            save("./mat/ES.mat", 'ES');
             
             % 开始拼接所有的矩阵
             BC = obj.splice_BC(BC_funcs, BC_loc);
             disp("计算BC方程完成");
-            save("BC.mat", 'BC');
+            save("./mat/BC.mat", 'BC');
             
             % IC = BC \ ES;
             IC = lsqr(BC, ES, 1e-6, 1000);
             disp("计算IC方程完成");
-            save("IC.mat", 'IC');
+            save("./mat/IC.mat", 'IC');
             
             ICs = obj.split_IC(IC);
-            obj.plot_figures(ICs);
+            save("./mat/ICs.mat", 'ICs');
+            
+            
+            % obj.plot_figures(ICs);
+            save("./mat/obj.mat", 'obj');
             
         end
         
@@ -368,7 +372,7 @@ classdef AllRegions < handle
         
         % 计算某个区域某个点集(x0,y0)的Bx与By
         % 需要输入的x0和y0的个数相同，均为行向量（1，n）
-        function [Bx, By] = cal_Bx_By(obj, ICs, region_num, x0, y0)
+        function [Bx, By] = cal_Bx_By_region(obj, ICs, region_num, x0, y0)
             idx_impl = obj.regions{region_num}.impl;    % 当前区域的实例
             points_num = size(x0, 2);
             
@@ -486,6 +490,22 @@ classdef AllRegions < handle
             By = By';
         end
         
+        function [Bx, By] = cal_Bx_By(obj, ICs, x0, y0)
+            % 注意输入需要是行向量
+            [xs, ys, ids] = split_curve_by_rects_by_points(x0, y0, obj.regions_area);
+            segments_lens = length(ids);   % 分区个数
+            Bxc = cell(1,segments_lens);
+            Byc = cell(1,segments_lens);
+            
+            for i=1:segments_lens
+                [Bxc{i}, Byc{i}] = obj.cal_Bx_By_region(ICs, ids(i) , xs{i}, ys{i});
+            end
+            
+            Bx = vertcat(Bxc{:});
+            By = vertcat(Byc{:});
+        end
+        
+        
         function plot_figures(obj, ICs)
             points = 400;
             x0 = 0.11 .* ones(1, points);
@@ -528,6 +548,8 @@ classdef AllRegions < handle
             grid on;
             %}
         end
+        
+        
         
     end
 end

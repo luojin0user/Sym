@@ -561,7 +561,7 @@ hold off;
 
 % Path 3: x = ((x1 + x2) / 2), y from y1 to y4 (Figure 7)
 num_points = 1000;
-x_path1 = ((x2 + x3) / 2) .* ones(1, num_points);
+x_path1 = ((x1 + x2) / 2) .* ones(1, num_points);
 y_path1 = linspace(y1, y4, num_points);
 Bx_path1 = zeros(1, num_points);
 By_path1 = zeros(1, num_points);
@@ -572,7 +572,7 @@ for i = 1:num_points
     if y_path1(i) > y1 &&  y_path1(i) <= y2
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 1, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
     elseif y_path1(i) > y2 &&  y_path1(i) <= y3
-        [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 6, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
+        [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 3, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
     elseif y_path1(i) > y3 &&  y_path1(i) <= y4
         [~, Bx_path1(i), By_path1(i)] = calculate_magnetic_field(x_path1(i), y_path1(i), IC, 2, H1max, H2max, H3max, H4max, H5max, H6max, H7max, N3max, N4max, N5max, N6max, N7max, mu6, mu7, Jz6, Jz7);
     end
@@ -591,8 +591,8 @@ hold off;
 
 
 % ======== Path 2: Scan all y between y2 and y3 ========
-num_points_x = 200;  % X 上采样数
-num_points_y = 150;  % Y 上采样数
+num_points_x = 1000;  % X 上采样数
+num_points_y = 1000;  % Y 上采样数
 
 x_vals = linspace(x1, x6, num_points_x);
 y_vals = linspace(y1, y4, num_points_y);
