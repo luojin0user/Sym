@@ -1,6 +1,7 @@
 classdef AllRegions < handle
     properties
         regions  % cell array 存储所有区域
+        divide   % 用于处理输入区域等
         region_num = 7; % 区域数量
         all_H_max = [60; 60; 60; 60; 60; 60; 60];
         all_N_max = [60; 60; 60; 60; 60; 60; 60];
@@ -36,6 +37,7 @@ classdef AllRegions < handle
     methods
         function obj = AllRegions()
             obj.regions = cell(1,7);
+            obj.divide = RegionInput();
         end
         
         function get_all_regions(obj)
@@ -504,8 +506,7 @@ classdef AllRegions < handle
             Bx = vertcat(Bxc{:});
             By = vertcat(Byc{:});
         end
-        
-        
+            
         function plot_figures(obj, ICs)
             points = 400;
             x0 = 0.11 .* ones(1, points);
@@ -549,7 +550,28 @@ classdef AllRegions < handle
             %}
         end
         
-        
+        function input_current_region(obj, xl, xr, yb, yt, mu_r, I_r, N_t) 
+            % 输入电流区域的坐标与电流大小，线圈匝数
+            % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1，
+            % I_r是电流大小，N_t是线圈匝数
+            obj.divide.set_current_regions(xl, xr, yb, yt, mu_r, I_r, N_t);
+        end
+
+        function input_calculate_area(obj, xl, xr, yb, yt, mu_r)
+            % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1
+            obj.divide.set_calculate_area(xl, xr, yb, yt, mu_r);
+        end
+
+
+        function pre_process(obj)
+            % 输入完所有的区域后，调用这个函数进行预处理
+            obj.divide.divide_regions();
+            obj.divide.findNeighbors();
+            obj.divide.cal_other_info();
+
+            % 计算完成后，将数据输入到这个类中
+            
+        end
         
     end
 end

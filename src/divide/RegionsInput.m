@@ -1,12 +1,13 @@
 classdef RegionsInput < handle
     properties
         special_region_area    % 定义特殊区域的位置
-        special_region_property    % 定义特殊区域的性质，例如mu_0 J_r
-        other_mu_r                % 其他区域的mu_r
+        special_region_property    % 定义特殊区域的性质，例如mu_0 I_r N_t
+        air_mu_r                % 其他区域的mu_r
         
         all_area           % 所有需要计算的区域坐标
         
         divided_rects       % 划分好的区域
+        all_casetype        % 所有区域的类型
         
         % 这里是所有区域的边界，每一个都是一个1xn的cell，每一列都是一个数组储存对应区域的邻接区域
         all_lefts
@@ -28,7 +29,6 @@ classdef RegionsInput < handle
         all_N_max
         all_mu_r
         all_J_r
-
     end
     
     methods
@@ -38,30 +38,31 @@ classdef RegionsInput < handle
         
         % 这里输入特殊的区域，例如线圈区域、铁磁区域或者铝区域等，需要输入对应的坐标以及mu_r，I_r
         % 设置电流区域
-        function set_current_regions(obj, xl, xr, yl, yt, mu_r, J_r)
-            row = [xl, xr, yl, yt];
+        function set_current_regions(obj, xl, xr, yb, yt, mu_r, I_r, N_t)
+            row = [xl, xr, yb, yt];
             obj.special_region_area(end+1, :) = row;
             
-            row = [mu_r, J_r];
+            row = [mu_r, I_r, N_t];
             obj.special_region_property(end+1, :) = row;
         end
         
         % 设置需要计算的区域，也就是全体区域
-        function set_calculate_area(obj, xl, xr, yl, yt, mu_r)
-            % 输入的xl,xr,yl,yt分别是左侧x坐标，右侧x坐标，上侧y坐标，下侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1
-            row = [xl, xr, yl, yt];
+        function set_calculate_area(obj, xl, xr, yb, yt, mu_r)
+            % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1
+            row = [xl, xr, yb, yt];
             obj.all_area = row;
             
-            obj.other_mu_r = mu_r;
+            obj.air_mu_r = mu_r;
         end
         
         % 分割区域，用于送给后续进行计算
         function divide_regions(obj)
             % S: 1x4  [xL xR yB yT]
             % subregions: cell array, each 1x4
-            
+
             S = obj.all_area;
             subregions = obj.special_region_area;
+            obj.special_regions_num = size(subregions, 1);
             
             % 验证输入
             if isempty(subregions)
@@ -129,6 +130,7 @@ classdef RegionsInput < handle
             rects = [rects; subregions];
             
             obj.divided_rects = rects;
+            obj.regions_num = size(rects, 1);
         end
         
         % 绘制分割好的区域
@@ -170,6 +172,8 @@ classdef RegionsInput < handle
             N = size(regions,1);
             i_current = N - size(current_regions, 1) + 1; % 由此之后就是电流区域
             
+            casetypes = cell(N, 1);
+
             left_neighbors   = cell(N,1);
             right_neighbors  = cell(N,1);
             top_neighbors    = cell(N,1);
@@ -227,10 +231,21 @@ classdef RegionsInput < handle
                     % 处理这个区域种类，目前只考虑这三类
                     if length(top_neighbors{i}) > 1 || length(bottom_neighbors{i}) > 1
                         regions_bc_type{i} = BC_TYPE.BBAA;
+
+                        if isempty(top_neighbors{i}) || isempty(bottom_neighbors{i})
+                            % 如果上下有一个大于1，而且还有一个为0，那么区域种类一定是BTAir
+                            casetypes{i} = CaseType.BTAir;
+                        else
+                            % 如果不是，那么就是AllayAir
+                            casetypes{i} = CaseType.AlleyAir;
+                        end
+
                     elseif i >= i_current
                         regions_bc_type{i} = BC_TYPE.AABB;
+                        casetypes{i} = CaseType.FerriteCurrent;
                     else
                         regions_bc_type{i} = BC_TYPE.AAAA;
+                        casetypes{i} = CaseType.NormalAir;
                     end
                 end
             end
@@ -241,6 +256,7 @@ classdef RegionsInput < handle
             obj.all_bottoms = bottom_neighbors;
 
             obj.all_BC_types = regions_bc_type;
+            obj.all_casetype = casetypes;
         end
         
         
@@ -251,9 +267,32 @@ classdef RegionsInput < handle
         end
         
         % 计算其他所有信息，例如H_max等
-        function cal_other_info()
-        
+        function cal_other_info(obj)
+            r_num = obj.regions_num;
+            sr_num = obj.special_regions_num;
+
+            obj.all_H_max = obj.H_max * ones(r_num, 1);
+            obj.all_N_max = obj.N_max * ones(r_num, 1);
+            
+            other_mu_r = obj.air_mu_r * ones(r_num - sr_num, 1);
+            other_J_r = zeros(r_num - sr_num, 1);
+
+            special_mu_r = zeros(sr_num, 1);
+            special_J_r = zeros(sr_num, 1);
+
+            for i=1:sr_num
+                special_mu_r(i) = obj.special_region_property(i,1);
+                Ir = obj.special_region_property(i,2);
+                Nt = obj.special_region_property(i,3);
+                area = obj.special_region_area(i,:);
+                Sc = (area(2) - area(1)) * (area(4) - area(3));    % 计算面积
+                special_J_r(i) = Nt * Ir / Sc;
+            end
+
+            obj.all_mu_r = [other_mu_r; special_mu_r];
+            obj.all_J_r = [other_J_r; special_J_r];
+
         end
-        
+
     end
 end
