@@ -1,11 +1,13 @@
-t1 = load("BC.mat");
-t2 = load("ES.mat");
+basePath = fileparts(mfilename('fullpath'));
+addpath(genpath(basePath));
 
-BC = t1.BC;
-ES = t2.ES;
-BCx = sparse(BC);
+regions = RegionsInput();
+regions.set_calculate_area(0, 0.28, 0, 0.24, 1);
+regions.set_current_regions(0.1, 0.12, 0.1, 0.14, 1, 1e7);
+regions.set_current_regions(0.16, 0.18, 0.1, 0.14, 1, -1e7);
 
-IC = lsqr(BCx, ES, 1e-6, 1000);
+regions.divide_regions();
 
+regions.findNeighbors();
 
-save("IC.mat",'IC');
+regions.polt_divided_regions();
