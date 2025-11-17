@@ -7,7 +7,7 @@ ICs = load("./mat/ICs.mat", 'ICs').ICs;
 obj = load("./mat/obj.mat", 'obj').obj;
 
 points = 400;
-x0 = 0.01 .* ones(1, points);
+x0 = 0.14 .* ones(1, points);
 y0 = linspace(0,0.24,points);
 
 % 注意输入需要是行向量
@@ -20,17 +20,17 @@ grid on;
 
 %% 3D
 
-num_points_x = 1000;  % X 上采样数
-num_points_y = 1000;  % Y 上采样数
+num_points_x = 200;  % X 上采样数
+num_points_y = 200;  % Y 上采样数
 
 x_vals = linspace(0, 0.28, num_points_x);
 y_vals = linspace(0, 0.24, num_points_y);
 
 [Bx_3D, By_3D] = deal(zeros(num_points_y, num_points_x));
 
-for iy = 1:num_points_y
+parfor iy = 1:num_points_y
     y_tmp = y_vals(iy) * ones(1, num_points_x);
-    Bx_3D(iy,:), By_3D(iy,:) = obj.cal_Bx_By(ICs, x_vals, y_tmp);
+    [Bx_3D(iy,:), By_3D(iy,:)] = obj.cal_Bx_By(ICs, x_vals, y_tmp);
 end
 
 

@@ -2,48 +2,41 @@ classdef AllRegions < handle
     properties
         regions  % cell array 存储所有区域
         divide   % 用于处理输入区域等
-        region_num = 7; % 区域数量
-        all_H_max = [60; 60; 60; 60; 60; 60; 60];
-        all_N_max = [60; 60; 60; 60; 60; 60; 60];
+
+        region_num % 区域数量
+        all_H_max
+        all_N_max
         
-        % all_H_max = [300; 300; 107; 107; 43; 21; 21];
-        % all_N_max = [60; 60; 268; 268; 268; 268; 268];
+        all_mu_r
+        all_J_r
         
-        % all_H_max = [1; 1; 1; 1; 1; 1; 1];
-        % all_N_max = [1; 1; 1; 1; 1; 1; 1];
-        
-        % all_H_max = [2;2;2;2;2;2;2];
-        % all_N_max = [2;2;2;2;2;2;2];
-        Jz6 = -1600 .* 5 / (800 .* 1e-6); % Region 6 的电流密度
-        Jz7 = 1600 .* 5 / (800 .* 1e-6); % Region 7 的电流密度 (反向)
-        
-        all_mu_r = [1;1;1;1;1500;1;1];
-        all_J_r = [0;0;0;0;0;1e7;-1e7];
-        
-        len_IC = [60;60;180;180;240;242;242];
+        len_IC;
         
         % 区域，每一行是一个矩形区域
-        regions_area = [
-            0, 0.280, 0, 0.100;
-            0, 0.280, 0.140, 0.240;
-            0, 0.100, 0.100, 0.140;
-            0.180, 0.280, 0.100, 0.140;
-            0.120, 0.160, 0.100, 0.140;
-            0.100, 0.120, 0.100, 0.140;
-            0.160, 0.180, 0.100, 0.140;
-            ];
+        regions_area
+        all_BC_types
+        all_casetypes
+        % 有源区域
+        current_regions
+        current_regions_idx
+
+        % 所有区域的上下左右边界
+        all_lefts
+        all_rights
+        all_tops
+        all_bottoms
     end
     
     methods
         function obj = AllRegions()
-            obj.regions = cell(1,7);
-            obj.divide = RegionInput();
+            obj.divide = RegionsInput();
         end
         
         function get_all_regions(obj)
-            
+            % obj.regions = cell(obj.region_num, 1);
             obj.set_all_regions();
             disp("区域内方程计算完毕");
+            obj.cal_IC_lens();
             % 在所有的区域内部方程完成运算之后，再调用函数进行所有边界的运算
             
             % 计算所有的边界方程
@@ -74,54 +67,27 @@ classdef AllRegions < handle
             save("./mat/ICs.mat", 'ICs');
             
             
-            % obj.plot_figures(ICs);
             save("./mat/obj.mat", 'obj');
             
         end
         
         
         function set_all_regions(obj)
-            %% 区域 1
-            obj.regions{1} = Region(1, CaseType.BTAir, obj.regions_area(1,:), ...
-                BC_TYPE.BBAA, [3,4,5,6,7],[],[],[],[6,7], obj.all_H_max(1), obj.all_N_max(1), obj.all_mu_r(1), obj.all_J_r(1), obj.region_num);
-            obj.regions{1}.get_region_solution_func();
-            
-            %% 区域 2
-            obj.regions{2} = Region(2, CaseType.BTAir, obj.regions_area(2,:), ...
-                BC_TYPE.BBAA, [], [3,4,5,6,7],[],[],[6,7], obj.all_H_max(2), obj.all_N_max(2), obj.all_mu_r(2), obj.all_J_r(2), obj.region_num);
-            obj.regions{2}.get_region_solution_func();
-            
-            %% 区域 3
-            obj.regions{3} = Region(3, CaseType.NormalAir, obj.regions_area(3,:), ...
-                BC_TYPE.AAAA, [2],[1],[],[6],[6,7], obj.all_H_max(3), obj.all_N_max(3), obj.all_mu_r(3), obj.all_J_r(3), obj.region_num);
-            obj.regions{3}.get_region_solution_func();
-            
-            %% 区域 4
-            obj.regions{4} = Region(4, CaseType.NormalAir, obj.regions_area(4,:) , ...
-                BC_TYPE.AAAA, [2],[1],[7],[],[6,7], obj.all_H_max(4), obj.all_N_max(4), obj.all_mu_r(4), obj.all_J_r(4), obj.region_num);
-            obj.regions{4}.get_region_solution_func();
-            
-            %% 区域 5
-            obj.regions{5} = Region(5, CaseType.NormalAir, obj.regions_area(5,:), ...
-                BC_TYPE.AAAA, [2],[1],[6],[7],[6,7], obj.all_H_max(5), obj.all_N_max(5), obj.all_mu_r(5), obj.all_J_r(5), obj.region_num);
-            obj.regions{5}.get_region_solution_func();
-            
-            %% 区域6
-            obj.regions{6} = Region(6, CaseType.FerriteCurrent, obj.regions_area(6,:), ...
-                BC_TYPE.AABB, [2],[1],[3],[5],[6,7], obj.all_H_max(6), obj.all_N_max(6), obj.all_mu_r(6), obj.all_J_r(6), obj.region_num);
-            obj.regions{6}.get_region_solution_func();
-            
-            %% 区域7
-            obj.regions{7} = Region(7, CaseType.FerriteCurrent, obj.regions_area(7,:), ...
-                BC_TYPE.AABB, [2],[1],[5],[4],[6,7], obj.all_H_max(7), obj.all_N_max(7), obj.all_mu_r(7), obj.all_J_r(7), obj.region_num);
-            obj.regions{7}.get_region_solution_func();
+            all_regions = cell(obj.region_num, 1);
+            for i=1:obj.region_num
+                all_regions{i} = Region(i, obj.all_casetypes{i}, obj.regions_area(i,:), obj.all_BC_types{i}, ...
+                    obj.all_tops{i}, obj.all_bottoms{i}, obj.all_lefts{i}, obj.all_rights{i}, obj.current_regions_idx, ...
+                    obj.all_H_max(i), obj.all_N_max(i), obj.all_mu_r(i), obj.all_J_r(i), obj.region_num);
+                all_regions{i}.get_region_solution_func();
+            end 
+            obj.regions = all_regions;
         end
         
         function [BC_funcs, BC_loc, ES_funcs] = cal_all_BCs(obj)
-            BC_funcs = cell(1,7);
-            BC_loc = cell(1,7);
-            ES_funcs = cell(1,7);
-            parfor i=1:7    % 并行计算所有边界函数
+            BC_funcs = cell(1,obj.region_num);
+            BC_loc = cell(1,obj.region_num);
+            ES_funcs = cell(1,obj.region_num);
+            parfor i=1:obj.region_num    % 并行计算所有边界函数
                 [BC_funcs{i}, BC_loc{i}, ES_funcs{i}] = obj.regions{i}.gen_region_coefficient_func(obj.regions);
             end
         end
@@ -370,6 +336,20 @@ classdef AllRegions < handle
             end
             
         end
+
+        function  cal_IC_lens(obj)
+            obj.len_IC = zeros(obj.region_num, 1);
+            for i=1:obj.region_num
+                idx_impl = obj.regions{i}.impl;    % 当前区域的实例
+                coeffs_exists = idx_impl.coeffs_exists;
+                H_max = idx_impl.H_max;
+                N_max = idx_impl.N_max;
+
+                 obj.len_IC(i) = coeffs_exists(1) * 1 + coeffs_exists(3) * 1 + ...
+                                 coeffs_exists(2) .* H_max + coeffs_exists(4) .* H_max + ...
+                                 coeffs_exists(5) .* H_max + coeffs_exists(6) .* N_max;      
+            end
+        end
         
         
         % 计算某个区域某个点集(x0,y0)的Bx与By
@@ -570,7 +550,12 @@ classdef AllRegions < handle
             obj.divide.cal_other_info();
 
             % 计算完成后，将数据输入到这个类中
-            
+            [obj.regions_area, obj.region_num, obj.current_regions] = obj.divide.rtn_regions();
+            [obj.all_H_max, obj.all_N_max] = obj.divide.rtn_HN_max();
+            [obj.all_mu_r, obj.all_J_r] = obj.divide.rtn_mu_J();
+            [obj.all_BC_types, obj.all_casetypes] = obj.divide.rtn_types();
+            [obj.all_lefts, obj.all_rights, obj.all_tops, obj.all_bottoms] = obj.divide.rtn_boundarys();
+            obj.current_regions_idx = obj.divide.rtn_current_idx();
         end
         
     end

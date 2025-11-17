@@ -294,5 +294,37 @@ classdef RegionsInput < handle
 
         end
 
+        function [H_max, N_max] = rtn_HN_max(obj)
+            H_max = obj.all_H_max;
+            N_max = obj.all_N_max;
+        end
+
+        function [mu_r, J_r] = rtn_mu_J(obj)
+            mu_r = obj.all_mu_r;
+            J_r = obj.all_J_r;
+        end
+
+        function [regions, region_num, current_regions] = rtn_regions(obj)
+            regions = obj.divided_rects;
+            region_num = obj.regions_num;
+            current_regions = obj.special_region_area;
+
+        end
+
+        function [bctype, casetype] = rtn_types(obj)
+            bctype = obj.all_BC_types;
+            casetype = obj.all_casetype;
+        end
+
+        function [lefts, rights, tops, bottoms] = rtn_boundarys(obj)
+            lefts = obj.all_lefts;
+            rights = obj.all_rights;
+            tops = obj.all_tops;
+            bottoms = obj.all_bottoms;
+        end
+
+        function current_idx = rtn_current_idx(obj)
+            current_idx = (obj.regions_num - obj.special_regions_num + 1):(obj.regions_num);
+        end
     end
 end
