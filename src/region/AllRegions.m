@@ -2,7 +2,7 @@ classdef AllRegions < handle
     properties
         regions  % cell array 存储所有区域
         divide   % 用于处理输入区域等
-
+        
         region_num % 区域数量
         all_H_max
         all_N_max
@@ -19,17 +19,21 @@ classdef AllRegions < handle
         % 有源区域
         current_regions
         current_regions_idx
-
+        
         % 所有区域的上下左右边界
         all_lefts
         all_rights
         all_tops
         all_bottoms
+        
+        % 当前平面，xoy或者zoy字符串
+        this_plain
     end
     
     methods
-        function obj = AllRegions()
+        function obj = AllRegions(this_plain)
             obj.divide = RegionsInput();
+            obj.this_plain = this_plain;
         end
         
         function get_all_regions(obj)
@@ -51,23 +55,25 @@ classdef AllRegions < handle
             % 拼接ES矩阵
             ES = obj.splice_ES(ES_funcs);
             disp("计算ES方程完成")
-            save("./mat/ES.mat", 'ES');
+            % save("./mat/ES.mat", 'ES');
             
             % 开始拼接所有的矩阵
             BC = obj.splice_BC(BC_funcs, BC_loc);
             disp("计算BC方程完成");
-            save("./mat/BC.mat", 'BC');
+            % save("./mat/BC.mat", 'BC');
             
             % IC = BC \ ES;
             IC = lsqr(BC, ES, 1e-6, 1000);
             disp("计算IC方程完成");
-            save("./mat/IC.mat", 'IC');
+            % filepath = fullfile("mat", obj.this_plain, "IC.mat");
+            % save(filepath, "IC");
             
             ICs = obj.split_IC(IC);
-            save("./mat/ICs.mat", 'ICs');
+            filepath = fullfile("mat", obj.this_plain, "ICs.mat");
+            save(filepath, 'ICs');
             
-            
-            save("./mat/obj.mat", 'obj');
+            filepath = fullfile("mat", obj.this_plain, "obj.mat");
+            save(filepath, 'obj');
             
         end
         
@@ -79,7 +85,7 @@ classdef AllRegions < handle
                     obj.all_tops{i}, obj.all_bottoms{i}, obj.all_lefts{i}, obj.all_rights{i}, obj.current_regions_idx, ...
                     obj.all_H_max(i), obj.all_N_max(i), obj.all_mu_r(i), obj.all_J_r(i), obj.region_num);
                 all_regions{i}.get_region_solution_func();
-            end 
+            end
             obj.regions = all_regions;
         end
         
@@ -336,7 +342,7 @@ classdef AllRegions < handle
             end
             
         end
-
+        
         function  cal_IC_lens(obj)
             obj.len_IC = zeros(obj.region_num, 1);
             for i=1:obj.region_num
@@ -344,10 +350,10 @@ classdef AllRegions < handle
                 coeffs_exists = idx_impl.coeffs_exists;
                 H_max = idx_impl.H_max;
                 N_max = idx_impl.N_max;
-
-                 obj.len_IC(i) = coeffs_exists(1) * 1 + coeffs_exists(3) * 1 + ...
-                                 coeffs_exists(2) .* H_max + coeffs_exists(4) .* H_max + ...
-                                 coeffs_exists(5) .* H_max + coeffs_exists(6) .* N_max;      
+                
+                obj.len_IC(i) = coeffs_exists(1) * 1 + coeffs_exists(3) * 1 + ...
+                    coeffs_exists(2) .* H_max + coeffs_exists(4) .* H_max + ...
+                    coeffs_exists(5) .* H_max + coeffs_exists(6) .* N_max;
             end
         end
         
@@ -486,7 +492,7 @@ classdef AllRegions < handle
             Bx = vertcat(Bxc{:});
             By = vertcat(Byc{:});
         end
-            
+        
         function plot_figures(obj, ICs)
             points = 400;
             x0 = 0.11 .* ones(1, points);
@@ -530,25 +536,25 @@ classdef AllRegions < handle
             %}
         end
         
-        function input_current_region(obj, xl, xr, yb, yt, mu_r, I_r, N_t) 
+        function input_current_region(obj, xl, xr, yb, yt, mu_r, I_r, N_t)
             % 输入电流区域的坐标与电流大小，线圈匝数
             % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1，
             % I_r是电流大小，N_t是线圈匝数
             obj.divide.set_current_regions(xl, xr, yb, yt, mu_r, I_r, N_t);
         end
-
+        
         function input_calculate_area(obj, xl, xr, yb, yt, mu_r)
             % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1
             obj.divide.set_calculate_area(xl, xr, yb, yt, mu_r);
         end
-
-
+        
+        
         function pre_process(obj)
             % 输入完所有的区域后，调用这个函数进行预处理
             obj.divide.divide_regions();
             obj.divide.findNeighbors();
             obj.divide.cal_other_info();
-
+            
             % 计算完成后，将数据输入到这个类中
             [obj.regions_area, obj.region_num, obj.current_regions] = obj.divide.rtn_regions();
             [obj.all_H_max, obj.all_N_max] = obj.divide.rtn_HN_max();

@@ -3,22 +3,22 @@ addpath(genpath(basePath));
 % 当运行main后，保存了obj文件以及ICs文件后，可以直接使用这个文件绘图
 % 前提是激励不变，如果改变激励，例如改变线圈位置、电流大小等，需要重新运行main函数
 
-ICs = load("./mat/ICs.mat", 'ICs').ICs;
-obj = load("./mat/obj.mat", 'obj').obj;
+ICs = load("./mat/zoy/ICs.mat", 'ICs').ICs;
+obj = load("./mat/zoy/obj.mat", 'obj').obj;
 
 points = 400;
-x0 = 0.14 .* ones(1, points);
-y0 = linspace(0,0.24,points);
+x0 = linspace(0,0.28,points);
+y0 = 0.12 .* ones(1, points);
 
 % 注意输入需要是行向量
 [Bx, By] = obj.cal_Bx_By(ICs, x0, y0);
 
 figure; hold on;
-plot(y0, Bx, 'b-', 'Color', [0 0 1]); % 蓝色线表示 Bxc
-plot(y0, By, 'r--', 'Color', [1 0 0]); % 红色线表示 Byc
+plot(x0, Bx, 'b-', 'Color', [0 0 1]); % 蓝色线表示 Bxc
+plot(x0, By, 'r--', 'Color', [1 0 0]); % 红色线表示 Byc
 grid on;
 
-%% 3D
+%% 3D绘制
 
 num_points_x = 200;  % X 上采样数
 num_points_y = 200;  % Y 上采样数
