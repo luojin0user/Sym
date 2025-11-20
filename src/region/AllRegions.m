@@ -536,11 +536,11 @@ classdef AllRegions < handle
             %}
         end
         
-        function input_current_region(obj, xl, xr, yb, yt, mu_r, I_r, N_t)
+        function input_current_region(obj, xl, xr, yb, yt, mu_r, J_r)
             % 输入电流区域的坐标与电流大小，线圈匝数
             % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1，
             % I_r是电流大小，N_t是线圈匝数
-            obj.divide.set_current_regions(xl, xr, yb, yt, mu_r, I_r, N_t);
+            obj.divide.set_current_regions(xl, xr, yb, yt, mu_r, J_r);
         end
         
         function input_calculate_area(obj, xl, xr, yb, yt, mu_r)

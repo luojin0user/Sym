@@ -36,13 +36,13 @@ classdef RegionsInput < handle
             % 空构造函数
         end
         
-        % 这里输入特殊的区域，例如线圈区域、铁磁区域或者铝区域等，需要输入对应的坐标以及mu_r，I_r
+        % 这里输入特殊的区域，例如线圈区域、铁磁区域或者铝区域等，需要输入对应的坐标以及J_r
         % 设置电流区域
-        function set_current_regions(obj, xl, xr, yb, yt, mu_r, I_r, N_t)
+        function set_current_regions(obj, xl, xr, yb, yt, mu_r, J_r)
             row = [xl, xr, yb, yt];
             obj.special_region_area(end+1, :) = row;
             
-            row = [mu_r, I_r, N_t];
+            row = [mu_r, J_r];
             obj.special_region_property(end+1, :) = row;
         end
         
@@ -183,11 +183,11 @@ classdef RegionsInput < handle
             
             for i = 1:N
 
-                        % 初始设置为真正空数组
-        left_neighbors{i}   = [];
-        right_neighbors{i}  = [];
-        top_neighbors{i}    = [];
-        bottom_neighbors{i} = [];
+            % 初始设置为真正空数组
+            left_neighbors{i}   = [];
+            right_neighbors{i}  = [];
+            top_neighbors{i}    = [];
+            bottom_neighbors{i} = [];
         
                 xiL = regions(i,1); xiR = regions(i,2);
                 yiB = regions(i,3); yiT = regions(i,4);
@@ -282,11 +282,7 @@ classdef RegionsInput < handle
 
             for i=1:sr_num
                 special_mu_r(i) = obj.special_region_property(i,1);
-                Ir = obj.special_region_property(i,2);
-                Nt = obj.special_region_property(i,3);
-                area = obj.special_region_area(i,:);
-                Sc = (area(2) - area(1)) * (area(4) - area(3));    % 计算面积
-                special_J_r(i) = Nt * Ir / Sc;
+                special_J_r(i) = obj.special_region_property(i,2);
             end
 
             obj.all_mu_r = [other_mu_r; special_mu_r];

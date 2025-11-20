@@ -3,8 +3,8 @@ addpath(genpath(basePath));
 % 当运行main后，保存了obj文件以及ICs文件后，可以直接使用这个文件绘图
 % 前提是激励不变，如果改变激励，例如改变线圈位置、电流大小等，需要重新运行main函数
 
-ICs = load("./mat/zoy/ICs.mat", 'ICs').ICs;
-obj = load("./mat/zoy/obj.mat", 'obj').obj;
+ICs = load("./mat/xoz/ICs.mat", 'ICs').ICs;
+obj = load("./mat/xoz/obj.mat", 'obj').obj;
 
 points = 400;
 x0 = linspace(0,0.28,points);
@@ -23,7 +23,7 @@ grid on;
 num_points_x = 200;  % X 上采样数
 num_points_y = 200;  % Y 上采样数
 
-x_vals = linspace(0, 0.28, num_points_x);
+x_vals = linspace(0, 0.08, num_points_x);
 y_vals = linspace(0, 0.24, num_points_y);
 
 [Bx_3D, By_3D] = deal(zeros(num_points_y, num_points_x));
@@ -34,30 +34,17 @@ parfor iy = 1:num_points_y
 end
 
 
-
 % ======== 绘制 3D 面图 ========
 figure;
 [Xgrid, Ygrid] = meshgrid(x_vals, y_vals);
 
-surf(Xgrid, Ygrid, By_3D, 'EdgeColor', 'none');
+B_3D = sqrt(Bx_3D.^2 + By_3D.^2);
+
+surf(Xgrid, Ygrid, B_3D, 'EdgeColor', 'none');
 xlabel('x [cm]');
 ylabel('y [cm]');
 zlabel('By [T]');
 title('3D Magnetic Flux Density By');
-colorbar;
-shading interp;
-view(45, 35);
-grid on;
-
-
-figure;
-[Xgrid, Ygrid] = meshgrid(x_vals, y_vals);
-
-surf(Xgrid, Ygrid, Bx_3D, 'EdgeColor', 'none');
-xlabel('x [cm]');
-ylabel('y [cm]');
-zlabel('By [T]');
-title('3D Magnetic Flux Density Bx');
 colorbar;
 shading interp;
 view(45, 35);
