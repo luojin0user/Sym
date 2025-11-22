@@ -8,25 +8,33 @@ num_points_y = 100;  % Y 上采样数
 
 x0 = linspace(0,0.28,num_points_x);
 y0 = linspace(0,0.28,num_points_y);
-z0 = 0.15 .* ones(1, num_points_y);
+z0 = 0.04;
 
-B_3D = deal(zeros(num_points_y, num_points_x));
+% 原始 x0, y0
+[xGrid, yGrid] = meshgrid(x0, y0);
 
-parfor iy = 1:num_points_y
-    y_tmp = y0(iy) * ones(1, num_points_x);
-    [Bx, By, Bz] = calB(x0', y_tmp', z0');
-    
-    B_3D(:,iy) = sqrt(Bx.^2 + By.^2 + Bz.^2);
-    % B_3D(:,iy) = sqrt(2*(Bx_new.^2 + Bz_xoz_new.^2));
-    % fprintf("this is %d\n", iy);
-end
+% 展开成列向量 (num_points_x * num_points_y) x 1
+xv = xGrid(:);
+yv = yGrid(:);
+zv = z0 * ones(size(xv));    % 统一展开为列向量
+
+% 一次性计算所有点 —— calB 只接收列向量，所以完全符合要求
+[Bxv, Byv, Bzv] = calB(xv, yv, zv);
+
+% reshape 回二维矩阵 (对应 y × x)
+Bx = reshape(Bxv, size(xGrid));
+By = reshape(Byv, size(xGrid));
+Bz = reshape(Bzv, size(xGrid));
+
+% 磁场大小
+B_3D = sqrt(Bx.^2 + By.^2 + Bz.^2);
+
 
 figure;
-[Xgrid, Ygrid] = meshgrid(x0, y0);
 
-save("./mat/All_B18.mat", 'Xgrid', 'Ygrid', 'B_3D');
+save("./mat/All_B18.mat", 'xGrid', 'yGrid', 'B_3D');
 
-surf(Xgrid, Ygrid, B_3D, 'EdgeColor', 'none');
+surf(xGrid, yGrid, B_3D, 'EdgeColor', 'none');
 xlabel('x [cm]');
 ylabel('y [cm]');
 zlabel('By [T]');

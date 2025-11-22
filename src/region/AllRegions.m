@@ -1,16 +1,20 @@
 classdef AllRegions < handle
     properties
         regions  % cell array 存储所有区域
-        divide   % 用于处理输入区域等
+        divide_xoz   % 用于处理输入区域等
+        divide_yoz
         
-        region_num % 区域数量
+        region_num_xoz % 区域数量
+        region_num_yoz % 区域数量
+        all_region_num
         all_H_max
         all_N_max
         
         all_mu_r
         all_J_r
         
-        len_IC;
+        len_IC_xoz
+        len_IC_yoz
         
         % 区域，每一行是一个矩形区域
         regions_area
@@ -31,9 +35,9 @@ classdef AllRegions < handle
     end
     
     methods
-        function obj = AllRegions(this_plain)
-            obj.divide = RegionsInput();
-            obj.this_plain = this_plain;
+        function obj = AllRegions()
+            obj.divide_xoz = RegionsInput();
+            obj.divide_yoz = RegionsInput();
         end
         
         function get_all_regions(obj)
@@ -53,56 +57,57 @@ classdef AllRegions < handle
             % 每一行的每个元素代表这个邻接区域的方程的c0 c d0 d e f分量，如果为{}则没有该分量，直接跳过
             
             % 拼接ES矩阵
-            ES = obj.splice_ES(ES_funcs);
+            [ES_xoz, ES_yoz] = obj.splice_ES(ES_funcs);
             disp("计算ES方程完成")
             % save("./mat/ES.mat", 'ES');
             
             % 开始拼接所有的矩阵
-            BC = obj.splice_BC(BC_funcs, BC_loc);
+            [BC_xoz, BC_yoz] = obj.splice_BC(BC_funcs, BC_loc);
             disp("计算BC方程完成");
             % save("./mat/BC.mat", 'BC');
             
             % IC = BC \ ES;
-            IC = lsqr(BC, ES, 1e-6, 1000);
+            IC_xoz = lsqr(BC_xoz, ES_xoz, 1e-6, 1000);
+            IC_yoz = lsqr(BC_yoz, ES_yoz, 1e-6, 1000);
             disp("计算IC方程完成");
             % filepath = fullfile("mat", obj.this_plain, "IC.mat");
             % save(filepath, "IC");
             
-            ICs = obj.split_IC(IC);
-            filepath = fullfile("mat", obj.this_plain, "ICs.mat");
-            save(filepath, 'ICs');
+            [ICs_xoz, ICs_yoz] = obj.split_IC(IC_xoz, IC_yoz);
+            save("./mat/ICs", 'ICs_xoz', 'ICs_yoz');
             
-            filepath = fullfile("mat", obj.this_plain, "obj.mat");
-            save(filepath, 'obj');
+            save("./mat/all_regions.mat", 'obj');
             
         end
         
         
         function set_all_regions(obj)
-            all_regions = cell(obj.region_num, 1);
-            for i=1:obj.region_num
+            all_regions = cell(obj.all_region_num, 1);
+            parfor i=1:obj.all_region_num
                 all_regions{i} = Region(i, obj.all_casetypes{i}, obj.regions_area(i,:), obj.all_BC_types{i}, ...
                     obj.all_tops{i}, obj.all_bottoms{i}, obj.all_lefts{i}, obj.all_rights{i}, obj.current_regions_idx, ...
-                    obj.all_H_max(i), obj.all_N_max(i), obj.all_mu_r(i), obj.all_J_r(i), obj.region_num);
+                    obj.all_H_max(i), obj.all_N_max(i), obj.all_mu_r(i), obj.all_J_r(i), obj.all_region_num);
                 all_regions{i}.get_region_solution_func();
             end
             obj.regions = all_regions;
         end
         
         function [BC_funcs, BC_loc, ES_funcs] = cal_all_BCs(obj)
-            BC_funcs = cell(1,obj.region_num);
-            BC_loc = cell(1,obj.region_num);
-            ES_funcs = cell(1,obj.region_num);
-            parfor i=1:obj.region_num    % 并行计算所有边界函数
+            BC_funcs = cell(obj.all_region_num, 1);
+            BC_loc = cell(obj.all_region_num, 1);
+            ES_funcs = cell(obj.all_region_num, 1);
+            
+            parfor i=1:obj.all_region_num    % 并行计算所有边界函数
                 [BC_funcs{i}, BC_loc{i}, ES_funcs{i}] = obj.regions{i}.gen_region_coefficient_func(obj.regions);
             end
         end
         
         % 拼接所有的BC
-        function BC = splice_BC(obj, BC_funcs, BC_loc)
+        function [BC_xoz, BC_yoz] = splice_BC(obj, BC_funcs, BC_loc)
             
-            BC_blocks = cell(obj.region_num, obj.region_num);
-            N = obj.region_num;
+            N = obj.all_region_num;
+            BC_blocks = cell(N, N);
+            
             sprintf("开始计算BC矩阵，共%d个\n",N);
             parfor i = 1:N
                 for j = 1:N
@@ -113,15 +118,36 @@ classdef AllRegions < handle
                     
                     if obj.regions{i}.all_edge_regions(j)   % 有边界相邻
                         BC_blocks{i,j} = obj.splice_BCxx(i, j, BC_funcs, BC_loc);
+                        fprintf("计算完成区域(%d,%d)\n",i,j);
                     else
                         BC_blocks{i,j} = []; % 或保持空
                     end
-                    
-                    fprintf("计算完成区域(%d,%d)\n",i,j);
                 end
             end
             
+            % 然后分割BC_block
+            k = obj.region_num_xoz;
+            BC_blocks_xoz = BC_blocks(1:k,1:k);
+            BC_blocks_yoz = BC_blocks(k+1:N,k+1:N);
+            
+            BC_xoz = obj.build_block_matrix(BC_blocks_xoz);
+            BC_yoz = obj.build_block_matrix(BC_blocks_yoz);
+            
+        end
+        
+        
+        function BC = build_block_matrix(obj, BC_blocks)
+            % 构造不规则 block cell 拼接的大矩阵，并自动加上单位阵
+            %
+            % 输入：
+            %   BC_blocks : N×N cell，每个元素是 r_ij × c_ij 的矩阵（可以为空 [])
+            %
+            % 输出：
+            %   BC : 大矩阵 + 单位阵（稀疏格式）
+            
             % 找每块的最大尺寸（按行、按列）
+            N = size(BC_blocks, 1);
+            
             row_sizes = zeros(1, N);
             col_sizes = zeros(1, N);
             for i = 1:N
@@ -160,6 +186,7 @@ classdef AllRegions < handle
             sprintf("BC矩阵大小:%dx%d\n",n,n);
             BC = BigMat + sparse(1:n, 1:n, 1, n, n);
         end
+        
         
         % 计算出一个BCxx
         function BCxx = splice_BCxx(obj, idx, edge_idx, BC_funcs, BC_loc)
@@ -258,11 +285,18 @@ classdef AllRegions < handle
             end
         end
         
-        function ES = splice_ES(obj, ES_funcs)
+        function [ES_xoz, ES_yoz] = splice_ES(obj, ES_funcs)
             % 所有的ES矩阵就是直接拼接，然后转置即可
-            N = obj.region_num;
+            N = obj.all_region_num;
+            
             ES = [];
             for i=1:N
+                if i == obj.region_num_xoz + 1
+                    % 如果第一个区域的计算完成了，储存这个区域的
+                    ES_xoz = ES';
+                    ES = [];
+                end
+                
                 funcs = ES_funcs{i};
                 idx_case = obj.regions{i}.impl;       % 当前区域的实例
                 
@@ -272,7 +306,6 @@ classdef AllRegions < handle
                 N_max = idx_case.N_max;
                 
                 ESx = [];
-                
                 
                 for j=1:length(col_exists)
                     func_num = col_exists(j);   % 当前读到的方程位置
@@ -315,42 +348,30 @@ classdef AllRegions < handle
                 end
                 ES = [ES, ESx];
             end
-            ES = ES';
+            % 剩下的是第二个区域的
+            ES_yoz = ES';
+            
         end
         
-        % 用于计算总行数或列数
-        function out = calc_col_nums(obj, col_nums, h, n)
-            % col_nums, h, n 为相同长度向量
-            % 输出 out 为同长度数值向量
-            
-            % 预分配
-            out = zeros(size(col_nums));
-            
-            % ---- case 1：col_nums ≤ 4 且不为1，3 ----
-            idx = (col_nums == 2 || col_nums == 4);
-            out(idx) = (col_nums(idx)/2).*h(idx) + (col_nums(idx)/2);
-            
-            % ---- case 2：col_nums ≤ 4 且为1，3 ----
-            idx = (col_nums == 1 || col_nums == 3);
-            out(idx) = ((col_nums(idx)-1)/2).*h(idx) + 2;
-            
-            % ---- case 3：col_nums > 4 ----
-            idx = (col_nums > 4);
-            out(idx) = 2.*h(idx) + 2 + (col_nums(idx)-4).*n(idx);
-        end
         
         % 用于分割IC矩阵，分割成cell，按c0 c d0 d e f的顺序排列，如果没有则为空
-        function ICs = split_IC(obj, IC)
-            all_regions_num = obj.region_num;
+        function [ICs_xoz, ICs_yoz] = split_IC(obj, IC_xoz, IC_yoz)
+            all_regions_num = obj.all_region_num;
+            len_IC = [obj.len_IC_xoz; obj.len_IC_yoz];
+            IC = [IC_xoz; IC_yoz];
             ICs = cell(all_regions_num, 6);
+            
             for i=1:all_regions_num
+                
                 idx_case = obj.regions{i}.impl;     % 当前区域的实例
                 % 找到非0元素的下标，顺序为c0 c d0 d e f
                 coeffs_exists = idx_case.coeffs_exists;
                 H_max = idx_case.H_max;
                 N_max = idx_case.N_max;
                 
-                ic_start = sum(obj.len_IC(1:(i-1))) + 1;   % 当前取到的下标的位置
+                
+                ic_start = sum(len_IC(1:(i-1))) + 1;   % 当前取到的下标的位置
+                
                 for j=1:length(coeffs_exists)
                     if coeffs_exists(j)
                         ic_end = ic_start + (j==1 || j==3)*1 + (j==2 || j==4)*H_max + (j==5 || j==6)*N_max - 1;
@@ -362,17 +383,32 @@ classdef AllRegions < handle
                 end
             end
             
+            ICs_xoz = ICs(1:obj.region_num_xoz, :);
+            ICs_yoz = ICs(obj.region_num_xoz+1:obj.region_num_xoz+obj.region_num_yoz, :);
         end
         
-        function  cal_IC_lens(obj)
-            obj.len_IC = zeros(obj.region_num, 1);
-            for i=1:obj.region_num
+        function cal_IC_lens(obj)
+            obj.len_IC_xoz = zeros(obj.region_num_xoz, 1);
+            
+            for i=1:obj.region_num_xoz
                 idx_impl = obj.regions{i}.impl;    % 当前区域的实例
                 coeffs_exists = idx_impl.coeffs_exists;
                 H_max = idx_impl.H_max;
                 N_max = idx_impl.N_max;
                 
-                obj.len_IC(i) = coeffs_exists(1) * 1 + coeffs_exists(3) * 1 + ...
+                obj.len_IC_xoz(i) = coeffs_exists(1) * 1 + coeffs_exists(3) * 1 + ...
+                    coeffs_exists(2) .* H_max + coeffs_exists(4) .* H_max + ...
+                    coeffs_exists(5) .* H_max + coeffs_exists(6) .* N_max;
+            end
+            
+            obj.len_IC_yoz = zeros(obj.region_num_yoz, 1);
+            for i= 1:obj.region_num_yoz
+                idx_impl = obj.regions{i+obj.region_num_xoz}.impl;    % 当前区域的实例
+                coeffs_exists = idx_impl.coeffs_exists;
+                H_max = idx_impl.H_max;
+                N_max = idx_impl.N_max;
+                
+                obj.len_IC_yoz(i) = coeffs_exists(1) * 1 + coeffs_exists(3) * 1 + ...
                     coeffs_exists(2) .* H_max + coeffs_exists(4) .* H_max + ...
                     coeffs_exists(5) .* H_max + coeffs_exists(6) .* N_max;
             end
@@ -381,8 +417,12 @@ classdef AllRegions < handle
         
         % 计算某个区域某个点集(x0,y0)的Bx与By
         % 需要输入的x0和y0的个数相同，均为行向量（1，n）
-        function [Bx, By] = cal_Bx_By_region(obj, ICs, region_num, x0, y0)
+        function [Bx, By] = cal_Bx_By_region(obj, plane, ICs, region_num, x0, y0)
             idx_impl = obj.regions{region_num}.impl;    % 当前区域的实例
+            if plane == "yoz"
+                region_num = region_num - obj.region_num_xoz;   % 给后面的ICs使用
+            end
+            
             points_num = size(x0, 2);
             
             H_max = idx_impl.H_max;
@@ -508,90 +548,90 @@ classdef AllRegions < handle
             By = By';
         end
         
-        function [Bx, By] = cal_Bx_By(obj, ICs, x0, y0)
+        function [Bx, By] = cal_Bx_By(obj, plane, ICs, x0, y0)
             % 注意输入需要是行向量
-            [xs, ys, ids] = split_curve_by_rects_by_points(x0, y0, obj.regions_area);
+            if plane == "xoz"
+                areas = obj.regions_area(1:obj.region_num_xoz,:);
+                [xs, ys, ids] = split_curve_by_rects_by_points(x0, y0, areas);
+            elseif plane == "yoz"
+                areas = obj.regions_area(obj.region_num_xoz+1:obj.region_num_xoz+obj.region_num_yoz, :);
+                [xs, ys, ids] = split_curve_by_rects_by_points(x0, y0, areas);
+                ids = ids + obj.region_num_xoz;
+            end
+            
             segments_lens = length(ids);   % 分区个数
             Bxc = cell(1,segments_lens);
             Byc = cell(1,segments_lens);
             
-            for i=1:segments_lens
-                [Bxc{i}, Byc{i}] = obj.cal_Bx_By_region(ICs, ids(i) , xs{i}, ys{i});
+            parfor i=1:segments_lens
+                % 这里只根据ICs计算，和区域编号有关
+                [Bxc{i}, Byc{i}] = obj.cal_Bx_By_region(plane, ICs, ids(i) , xs{i}, ys{i});
             end
             
             Bx = vertcat(Bxc{:});
             By = vertcat(Byc{:});
         end
         
-        function plot_figures(obj, ICs)
-            points = 400;
-            x0 = 0.11 .* ones(1, points);
-            y0 = linspace(0,0.240,points);
-            
-            % 注意输入需要是行向量
-            [xs, ys, ids] = split_curve_by_rects_by_points(x0, y0, obj.regions_area);
-            segments_lens = length(ids);   % 分区个数
-            Bxc = cell(1,segments_lens);
-            Byc = cell(1,segments_lens);
-            
-            for i=1:segments_lens
-                [Bxc{i}, Byc{i}] = obj.cal_Bx_By(ICs, ids(i) , xs{i}, ys{i});
-            end
-            
-            Bx = vertcat(Bxc{:});
-            By = vertcat(Byc{:});
-            figure; hold on;
-            plot(y0, Bx, 'b-', 'Color', [0 0 1]); % 蓝色线表示 Bxc
-            plot(y0, By, 'r--', 'Color', [1 0 0]); % 红色线表示 Byc
-            grid on;
-            %{
-            % 这里是按区域的，但是不是按顺序的，绘图需要按顺序
-            figure; hold on;
-            
-            % 绘制 Bxc
-            for i = 1:length(Bxc)
-                plot(xs{i}, Bxc{i}, 'b-', 'Color', [0 0 1]); % 蓝色线表示 Bxc
-            end
-            
-            % 绘制 Byc
-            for i = 1:length(Byc)
-                plot(xs{i}, Byc{i}, 'r--', 'Color', [1 0 0]); % 红色线表示 Byc
-            end
-            
-            xlabel('Value');
-            ylabel('Y');
-            title('Bxc 和 Byc 在 Y 上的分布');
-            legend({'Bxc','Byc'});
-            grid on;
-            %}
-        end
         
-        function input_current_region(obj, xl, xr, yb, yt, mu_r, J_r)
+        function input_current_region(obj, plain, xl, xr, yb, yt, mu_r, J_r)
             % 输入电流区域的坐标与电流大小，线圈匝数
             % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1，
             % I_r是电流大小，N_t是线圈匝数
-            obj.divide.set_current_regions(xl, xr, yb, yt, mu_r, J_r);
+            if plain == "xoz"
+                obj.divide_xoz.set_current_regions(xl, xr, yb, yt, mu_r, J_r);
+            elseif plain == "yoz"
+                obj.divide_yoz.set_current_regions(xl, xr, yb, yt, mu_r, J_r);
+            end
         end
         
         function input_calculate_area(obj, xl, xr, yb, yt, mu_r)
             % 输入的xl,xr,yb,yt分别是左侧x坐标，右侧x坐标，下侧y坐标，上侧y坐标，mu_r指的是这个区域的相对磁导率，一般为1
-            obj.divide.set_calculate_area(xl, xr, yb, yt, mu_r);
+            obj.divide_xoz.set_calculate_area(xl, xr, yb, yt, mu_r);
+            obj.divide_yoz.set_calculate_area(xl, xr, yb, yt, mu_r);
         end
         
         
         function pre_process(obj)
             % 输入完所有的区域后，调用这个函数进行预处理
-            obj.divide.divide_regions();
-            obj.divide.findNeighbors();
-            obj.divide.cal_other_info();
+            obj.divide_xoz.divide_regions();
+            obj.divide_xoz.findNeighbors();
+            obj.divide_xoz.cal_other_info();
             
             % 计算完成后，将数据输入到这个类中
-            [obj.regions_area, obj.region_num, obj.current_regions] = obj.divide.rtn_regions();
-            [obj.all_H_max, obj.all_N_max] = obj.divide.rtn_HN_max();
-            [obj.all_mu_r, obj.all_J_r] = obj.divide.rtn_mu_J();
-            [obj.all_BC_types, obj.all_casetypes] = obj.divide.rtn_types();
-            [obj.all_lefts, obj.all_rights, obj.all_tops, obj.all_bottoms] = obj.divide.rtn_boundarys();
-            obj.current_regions_idx = obj.divide.rtn_current_idx();
+            [regions_area1, obj.region_num_xoz, current_regions1] = obj.divide_xoz.rtn_regions();
+            [all_H_max1, all_N_max1] = obj.divide_xoz.rtn_HN_max();
+            [all_mu_r1, all_J_r1] = obj.divide_xoz.rtn_mu_J();
+            [all_BC_types1, all_casetypes1] = obj.divide_xoz.rtn_types();
+            [all_lefts1, all_rights1, all_tops1, all_bottoms1] = obj.divide_xoz.rtn_boundarys_idx(0);
+            current_regions_idx1 = obj.divide_xoz.rtn_current_idx(0);
+            
+            obj.divide_yoz.divide_regions();
+            obj.divide_yoz.findNeighbors();
+            obj.divide_yoz.cal_other_info();
+            
+            % 计算完成后，将数据输入到这个类中
+            [regions_area2, obj.region_num_yoz, current_regions2] = obj.divide_yoz.rtn_regions();
+            [all_H_max2, all_N_max2] = obj.divide_yoz.rtn_HN_max();
+            [all_mu_r2, all_J_r2] = obj.divide_yoz.rtn_mu_J();
+            [all_BC_types2, all_casetypes2] = obj.divide_yoz.rtn_types();
+            [all_lefts2, all_rights2, all_tops2, all_bottoms2] = obj.divide_yoz.rtn_boundarys_idx(obj.region_num_xoz);
+            current_regions_idx2 = obj.divide_yoz.rtn_current_idx(obj.region_num_xoz);
+            
+            obj.regions_area        = [regions_area1; regions_area2];
+            obj.current_regions     = [current_regions1; current_regions2];
+            obj.all_H_max           = [all_H_max1; all_H_max2];
+            obj.all_N_max           = [all_N_max1; all_N_max2];
+            obj.all_mu_r            = [all_mu_r1; all_mu_r2];
+            obj.all_J_r             = [all_J_r1; all_J_r2];
+            obj.all_BC_types        = [all_BC_types1; all_BC_types2];
+            obj.all_casetypes       = [all_casetypes1; all_casetypes2];
+            obj.all_lefts           = [all_lefts1; all_lefts2];
+            obj.all_rights          = [all_rights1; all_rights2];
+            obj.all_tops            = [all_tops1; all_tops2];
+            obj.all_bottoms         = [all_bottoms1; all_bottoms2];
+            obj.current_regions_idx = [current_regions_idx1; current_regions_idx2];
+            
+            obj.all_region_num = obj.region_num_xoz + obj.region_num_yoz;
         end
         
     end

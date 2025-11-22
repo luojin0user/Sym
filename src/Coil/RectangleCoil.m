@@ -86,21 +86,17 @@ classdef RectangleCoil < handle
         
         % 生成所有区域，并进行计算
         function gen_all_regions(obj)
-            % xoz方向 Bx Bz
-            plain1 = AllRegions("xoz");  % 创建对象
-            plain1.input_calculate_area(obj.cal_xl, obj.cal_xr, obj.cal_zb, obj.cal_zt, 1);
-            plain1.input_current_region(obj.x_cl1, obj.x_cl2, obj.z_b, obj.z_t, 1, obj.Jr_xl);
-            plain1.input_current_region(obj.x_cr1, obj.x_cr2, obj.z_b, obj.z_t, 1, obj.Jr_xr);
-            plain1.pre_process();
-            plain1.get_all_regions();  % 调用方法生成并显示所有区域
+            plain = AllRegions();  % 创建对象
             
-            % yoz方向 By Bz
-            plain2 = AllRegions("yoz");  % 创建对象
-            plain2.input_calculate_area(obj.cal_yl, obj.cal_yr, obj.cal_zb, obj.cal_zt, 1);
-            plain2.input_current_region(obj.y_cl1, obj.y_cl2, obj.z_b, obj.z_t, 1, obj.Jr_yl);
-            plain2.input_current_region(obj.y_cr1, obj.y_cr2, obj.z_b, obj.z_t, 1, obj.Jr_yr);
-            plain2.pre_process();
-            plain2.get_all_regions();  % 调用方法生成并显示所有区域
+            plain.input_current_region("xoz", obj.x_cl1, obj.x_cl2, obj.z_b, obj.z_t, 1, obj.Jr_xl);
+            plain.input_current_region("xoz", obj.x_cr1, obj.x_cr2, obj.z_b, obj.z_t, 1, obj.Jr_xr);
+            
+            plain.input_current_region("yoz", obj.y_cl1, obj.y_cl2, obj.z_b, obj.z_t, 1, obj.Jr_yl);
+            plain.input_current_region("yoz", obj.y_cr1, obj.y_cr2, obj.z_b, obj.z_t, 1, obj.Jr_yr);
+            
+            plain.input_calculate_area(obj.cal_xl, obj.cal_xr, obj.cal_zb, obj.cal_zt, 1);
+            plain.pre_process();
+            plain.get_all_regions();  % 调用方法生成并显示所有区域
             
             % 保存当前对象
             save('./mat/RCoil.mat', 'obj');

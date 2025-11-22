@@ -312,15 +312,22 @@ classdef RegionsInput < handle
             casetype = obj.all_casetype;
         end
         
-        function [lefts, rights, tops, bottoms] = rtn_boundarys(obj)
+        function [lefts, rights, tops, bottoms] = rtn_boundarys_idx(obj, start_idx)
             lefts = obj.all_lefts;
             rights = obj.all_rights;
             tops = obj.all_tops;
             bottoms = obj.all_bottoms;
+            
+            % 将 cell 数组中的每个 cell 处理：让其内部所有值 + start_idx
+            lefts   = cellfun(@(x) x + start_idx, lefts,   'UniformOutput', false);
+            rights  = cellfun(@(x) x + start_idx, rights,  'UniformOutput', false);
+            tops    = cellfun(@(x) x + start_idx, tops,    'UniformOutput', false);
+            bottoms = cellfun(@(x) x + start_idx, bottoms, 'UniformOutput', false);
         end
         
-        function current_idx = rtn_current_idx(obj)
+        function current_idx = rtn_current_idx(obj, start_idx)
             current_idx = (obj.regions_num - obj.special_regions_num + 1):(obj.regions_num);
+            current_idx = current_idx + start_idx;  % 修改起始位置
         end
     end
 end
