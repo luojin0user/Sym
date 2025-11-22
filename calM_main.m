@@ -18,5 +18,5 @@ coil2.plot3D(ax);
 TXCoil = load("./mat/RCoil.mat").obj;
 TXCoil.plot3D(ax);
 
-M = calM(coil2, 2.828e-3, 2.828e-3);
+M = calM(coil2, 1.414e-3, 1.414e-3, 5);
 disp(M);

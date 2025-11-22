@@ -156,7 +156,7 @@ classdef RectangleCoil < handle
         % 输入一个线圈
         % 返回一个匿名函数
         function factor_x(obj)
-            mu0 = obj.mu0;
+            mu_0 = obj.mu0;
             Ip = obj.Ir;
             Zc = obj.thick;
             
@@ -172,11 +172,11 @@ classdef RectangleCoil < handle
             alpha1 = acos((x - obj.m_xl) ./ g1);
             alpha2 = acos((obj.m_xr - x) ./ g2);
             
-            B_inf_x = sqrt((mu0 .* Ip ./ g1_2pi)^2 + (mu0 .* Ip ./ g2_2pi)^2 ...
-                - 2 .* (mu0 .* Ip ./ g1_2pi) .* (mu0 .* Ip ./ g2_2pi) .* cos(pi - alpha1 - alpha2));
+            B_inf_x = sqrt((mu_0 .* Ip ./ g1_2pi)^2 + (mu_0 .* Ip ./ g2_2pi)^2 ...
+                - 2 .* (mu_0 .* Ip ./ g1_2pi) .* (mu_0 .* Ip ./ g2_2pi) .* cos(pi - alpha1 - alpha2));
             
-            B_f_1 = mu0 .* Ip ./ (2 .* g1_2pi) .* (g4 ./ sqrt(g1^2 + g4^2) - g3 ./ sqrt(g1^2 + g3^2));
-            B_f_2 = mu0 .* Ip ./ (2 .* g2_2pi) .* (g4 ./ sqrt(g2^2 + g4^2) - g3 ./ sqrt(g2^2 + g3^2));
+            B_f_1 = mu_0 .* Ip ./ (2 .* g1_2pi) .* (g4 ./ sqrt(g1^2 + g4^2) - g3 ./ sqrt(g1^2 + g3^2));
+            B_f_2 = mu_0 .* Ip ./ (2 .* g2_2pi) .* (g4 ./ sqrt(g2^2 + g4^2) - g3 ./ sqrt(g2^2 + g3^2));
             
             B_f_x = sqrt(B_f_1^2 + B_f_2^2 ...
                 - 2 .* B_f_1 .* B_f_2 .* cos(pi - alpha1 - alpha2));
@@ -187,7 +187,7 @@ classdef RectangleCoil < handle
         
         
         function factor_y(obj)
-            mu0 = obj.mu0;
+            mu_0 = obj.mu0;
             Ip = obj.Ir;
             Zc = obj.thick;
             
@@ -206,11 +206,11 @@ classdef RectangleCoil < handle
             alpha1 = acos((y - obj.m_yl) ./ g1);
             alpha2 = acos((obj.m_yr - y) ./ g2);
             
-            B_inf_y = sqrt((mu0 .* Ip ./ g1_2pi)^2 + (mu0 .* Ip ./ g2_2pi)^2 ...
-                - 2 .* (mu0 .* Ip ./ g1_2pi) .* (mu0 .* Ip ./ g2_2pi) .* cos(pi - alpha1 - alpha2));
+            B_inf_y = sqrt((mu_0 .* Ip ./ g1_2pi)^2 + (mu_0 .* Ip ./ g2_2pi)^2 ...
+                - 2 .* (mu_0 .* Ip ./ g1_2pi) .* (mu_0 .* Ip ./ g2_2pi) .* cos(pi - alpha1 - alpha2));
             
-            B_f_1 = mu0 .* Ip ./ (2 .* g1_2pi) .* (g4 ./ sqrt(g1^2 + g4^2) - g3 ./ sqrt(g1^2 + g3^2));
-            B_f_2 = mu0 .* Ip ./ (2 .* g2_2pi) .* (g4 ./ sqrt(g2^2 + g4^2) - g3 ./ sqrt(g2^2 + g3^2));
+            B_f_1 = mu_0 .* Ip ./ (2 .* g1_2pi) .* (g4 ./ sqrt(g1^2 + g4^2) - g3 ./ sqrt(g1^2 + g3^2));
+            B_f_2 = mu_0 .* Ip ./ (2 .* g2_2pi) .* (g4 ./ sqrt(g2^2 + g4^2) - g3 ./ sqrt(g2^2 + g3^2));
             
             B_f_y = sqrt(B_f_1^2 + B_f_2^2 ...
                 - 2 .* B_f_1 .* B_f_2 .* cos(pi - alpha1 - alpha2));

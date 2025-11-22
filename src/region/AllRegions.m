@@ -212,7 +212,14 @@ classdef AllRegions < handle
                 
                 expr(row_hn, col_hn) = simplifyFraction(rhs(func));
                 f = matlabFunction(expr, "Vars", {row_hn, col_hn});
-                Q = arrayfun(@(x,y) (-f(x,y)), row_idx, col_idx);
+                % Q = arrayfun(@(x,y) (-f(x,y)), row_idx, col_idx);
+                
+                Q = zeros(size(row_idx));   % 保持矩阵形状
+                for ri = 1:size(row_idx,1)
+                    for rj = 1:size(row_idx,2)
+                        Q(ri,rj) = -f( row_idx(ri,rj), col_idx(ri,rj) );
+                    end
+                end
                 
                 % 将这个值送入BCxx中
                 % 每处理一个区域，只会有一行的数据，除了c0 d0这样的以外写入2行
@@ -235,7 +242,14 @@ classdef AllRegions < handle
                     % pretty(func);
                     f = matlabFunction((expr), "Vars", {col_hn});
                     Q1 = arrayfun(@(x) -f(x), col_idx);
-                    % Q1 = -f(row_idx, col_idx);   % 纯数值运算，超级快
+                    
+                    % Q1 = zeros(size(col_idx));   % 保持矩阵形状
+                    % for ri = 1:size(col_idx,1)
+                    %     for rj = 1:size(col_idx,2)
+                    %         Q1(ri,rj) = -f(col_idx(ri,rj));
+                    %     end
+                    % end
+                    
                     
                     start_row = start_row - 1;    % 上面的start_row
                     end_row = start_row;    % 这个只需要写一行，写在对应的c或d的上面一行
@@ -280,11 +294,19 @@ classdef AllRegions < handle
                         f = matlabFunction(expr, "Vars", {col_hn});
                         
                         if idx_case.ES_regions(i)   % 如果自己这个区域就是有源项
-                            col_idx = 0;
+                            % col_idx = 0;
                             ESxx = -double(expr);   % 这里需要加负号
                         else
                             col_idx= 1:col_HN_max;
                             ESxx = arrayfun(@(h) f(h), col_idx);
+                            
+                            % ESxx = zeros(size(col_idx));   % 保持矩阵形状
+                            % for ri = 1:size(col_idx,1)
+                            %     for rj = 1:size(col_idx,2)
+                            %         ESxx(ri,rj) = f(col_idx(ri,rj));
+                            %     end
+                            % end
+                            
                         end
                         
                     end
@@ -413,12 +435,14 @@ classdef AllRegions < handle
                             
                             expr = subs(Bx_x_expr, {c_0x, d_0x, d_hx}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {c_hx, h, x, y});
-                            Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
+                            % Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
+                            Q = f(cx, hx, x0h, y0h);
                             Bx_x_c = sum(Q, 1); % 对每一列求和
                             
                             expr = subs(By_x_expr, {c_0x, d_0x, d_hx}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {c_hx, h, x, y});
-                            Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
+                            % Q = arrayfun(@(c_hx, h, x, y) f(c_hx, h, x, y), cx, hx, x0h, y0h);
+                            Q = f(cx, hx, x0h, y0h);
                             By_x_c = sum(Q, 1);
                         case 3
                             Bx_x_d0 = repmat(ICn{3}, 1, points_num);
@@ -427,36 +451,42 @@ classdef AllRegions < handle
                             
                             expr = subs(Bx_x_expr, {c_0x, c_hx, d_0x}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {d_hx, h, x, y});
-                            Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
+                            % Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
+                            Q = f(dx, hx, x0h, y0h);
                             Bx_x_d = sum(Q, 1);
                             
                             expr = subs(By_x_expr, {c_0x, c_hx, d_0x}, {0, 0, 0});
                             f = matlabFunction(expr, "Vars", {d_hx, h, x, y});
-                            Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
+                            % Q = arrayfun(@(d_hx, h, x, y) f(d_hx, h, x, y), dx, hx, x0h, y0h);
+                            Q = f(dx, hx, x0h, y0h);
                             By_x_d = sum(Q, 1);
                         case 5
                             ex = repmat(ICn{5}, 1, points_num);
                             
                             expr = subs(Bx_y_expr, f_ny, 0);
                             f = matlabFunction(expr, "Vars", {e_ny, n, x, y});
-                            Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
+                            % Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
+                            Q = f(ex, nx, x0n, y0n);
                             Bx_y_e = sum(Q, 1);
                             
                             expr = subs(By_y_expr, f_ny, 0);
                             f = matlabFunction(expr, "Vars", {e_ny, n, x, y});
-                            Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
+                            % Q = arrayfun(@(e_ny, n, x, y) f(e_ny, n, x, y), ex, nx, x0n, y0n);
+                            Q = f(ex, nx, x0n, y0n);
                             By_y_e = sum(Q, 1);
                         case 6
                             fx = repmat(ICn{6}, 1, points_num);
                             
                             expr = subs(Bx_y_expr, e_ny, 0);
                             f = matlabFunction(expr, "Vars", {f_ny, n, x, y});
-                            Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
+                            % Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
+                            Q = f(fx, nx, x0n, y0n);
                             Bx_y_f = sum(Q, 1);
                             
                             expr = subs(By_y_expr, e_ny, 0);
                             f = matlabFunction(expr, "Vars", {f_ny, n, x, y});
-                            Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
+                            % Q = arrayfun(@(f_ny, n, x, y) f(f_ny, n, x, y), fx, nx, x0n, y0n);
+                            Q = f(fx, nx, x0n, y0n);
                             By_y_f = sum(Q, 1);
                     end
                 end
@@ -469,7 +499,8 @@ classdef AllRegions < handle
             if ~isempty(ICn{1}) % 如果存在c0或d0，说明这个区域是一个有源区域，需要加上B_x_P
                 B_x_P_v = idx_impl.B_x_P;
                 f = matlabFunction(B_x_P_v, "Vars", {y});
-                Q = arrayfun(@(y) f(y), y0);
+                Q = f(y0);
+                % Q = arrayfun(@(y) f(y), y0);
                 Bx = Bx + Q;
             end
             

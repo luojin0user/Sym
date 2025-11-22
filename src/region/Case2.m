@@ -23,7 +23,7 @@ classdef Case2 < BasicCase
             
             % 线性项
             syms x y real
-            obj.A_y_P = -0.5 * obj.mu_0 * obj.mu_r * obj.J_z * y * y;
+            obj.A_y_P = -0.5 .* obj.mu_0 .* obj.mu_r .* obj.J_z .* y .* y;
             obj.B_x_P = diff(obj.A_y_P, y);
             obj.B_y_P = -diff(obj.A_y_P, x);
             
@@ -41,7 +41,7 @@ classdef Case2 < BasicCase
             
             % 磁场分量
             obj.B_x_x = diff(obj.A_zx_expr , y);
-            obj.B_x_y = diff(obj.A_zy_expr , y);    
+            obj.B_x_y = diff(obj.A_zy_expr , y);
             obj.B_y_x = -diff(obj.A_zx_expr , x);
             obj.B_y_y = -diff(obj.A_zy_expr , x);
             
@@ -152,7 +152,7 @@ classdef Case2 < BasicCase
             else
                 func_num = func_num + 1;
             end
-
+            
             if ~obj.Ln
                 for i = 1:length(obj.L_funcs)
                     if isempty(obj.L_funcs{i})
@@ -164,7 +164,7 @@ classdef Case2 < BasicCase
                 end
                 
                 left_idx = obj.lefts(1);
-
+                
                 obj.BCfuncs_loc_map(:,left_idx) = [6,func_num];
                 func_num = func_num + 1;
             else

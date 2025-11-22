@@ -1,4 +1,4 @@
-function M = calM(coilConfig, dx, dz)
+function M = calM(coilConfig, dx, dz, Ip)
 % coilConfig:
 %   outer = [xL, yL, zL] 外尺寸
 %   inner = [xS, yS, zS] 内尺寸
@@ -17,7 +17,7 @@ yVec = yGrid(:);
 zVec = zGrid(:);
 
 %% 2. 计算磁场（批量向量化）
-[Bx, By, Bz] = calB(xVec, yVec, zVec); % 返回列向量
+[~, ~, Bz] = calB(xVec, yVec, zVec); % 返回列向量
 
 %% 3. 准备每匝对应的点索引
 % BxGrid = reshape(Bx, grid_size);
@@ -31,7 +31,6 @@ sum_phi = 0;
 dz_num = round(coilConfig.thick / dz);
 Nt_per_dz = coilConfig.layer / dz_num;
 Nt_per_dx = coilConfig.Nt_per_layer / dx_coil;
-layer = coilConfig.layer;
 for i=1:dz_num
     % z方向
     sum_i = 0;
@@ -47,7 +46,7 @@ for i=1:dz_num
     sum_phi = sum_phi + sum_i * Nt_per_dz;
 end
 
-M = sum_phi / 5;   % 因为 I=5A
+M = sum_phi / Ip;
 
 end
 
