@@ -140,6 +140,9 @@ classdef BasicCase < handle
             % syms H_max N_max 'integer'
             
             % 定义符号函数
+            % obj.beta_h = sym(['beta_h' suffix], 'real');
+            % obj.lambda_n = sym(['lambda_n' suffix], 'real');
+            
             obj.beta_h = obj.h * pi / obj.tau_x;      % beta 是关于 h 的函数
             obj.lambda_n = obj.n * pi / obj.tau_y;  % lambda 是关于 n 的函数
             
@@ -198,7 +201,7 @@ classdef BasicCase < handle
         function regions = gen_coefficient_func(obj)
             error('子类必须实现 gen_region 方法');
         end
-
+        
         function intersection = find_intersection(obj, x1, x2, y1, y2)
             % 确保 x1 <= x2 和 y1 <= y2
             % x1 = min(x1, x2);
@@ -217,6 +220,6 @@ classdef BasicCase < handle
                 intersection = [];  % 如果没有交集，则返回空数组
             end
         end
-
+        
     end
 end

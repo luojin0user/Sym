@@ -14,17 +14,17 @@ classdef RegionsInput < handle
         all_rights
         all_tops
         all_bottoms
-
+        
         % 所有的边界种类
         all_BC_types
-
+        
         % 区域数量
         regions_num
         special_regions_num
-
+        
         H_max = 60
         N_max = 60
-
+        
         all_H_max
         all_N_max
         all_mu_r
@@ -59,7 +59,7 @@ classdef RegionsInput < handle
         function divide_regions(obj)
             % S: 1x4  [xL xR yB yT]
             % subregions: cell array, each 1x4
-
+            
             S = obj.all_area;
             subregions = obj.special_region_area;
             obj.special_regions_num = size(subregions, 1);
@@ -168,27 +168,27 @@ classdef RegionsInput < handle
             % regions: N x 4 数组，每行：[xL xR yB yT]
             regions = obj.divided_rects;
             current_regions = obj.special_region_area;
-
+            
             N = size(regions,1);
             i_current = N - size(current_regions, 1) + 1; % 由此之后就是电流区域
             
             casetypes = cell(N, 1);
-
+            
             left_neighbors   = cell(N,1);
             right_neighbors  = cell(N,1);
             top_neighbors    = cell(N,1);
             bottom_neighbors = cell(N,1);
-
+            
             regions_bc_type = cell(N,1);
             
             for i = 1:N
-
-            % 初始设置为真正空数组
-            left_neighbors{i}   = [];
-            right_neighbors{i}  = [];
-            top_neighbors{i}    = [];
-            bottom_neighbors{i} = [];
-        
+                
+                % 初始设置为真正空数组
+                left_neighbors{i}   = [];
+                right_neighbors{i}  = [];
+                top_neighbors{i}    = [];
+                bottom_neighbors{i} = [];
+                
                 xiL = regions(i,1); xiR = regions(i,2);
                 yiB = regions(i,3); yiT = regions(i,4);
                 
@@ -227,11 +227,11 @@ classdef RegionsInput < handle
                     if abs(yjB - yiT) < 1e-12 && obj.intervalsOverlap([xiL xiR], [xjL xjR])
                         top_neighbors{i}(end+1) = j;
                     end
-
+                    
                     % 处理这个区域种类，目前只考虑这三类
                     if length(top_neighbors{i}) > 1 || length(bottom_neighbors{i}) > 1
                         regions_bc_type{i} = BC_TYPE.BBAA;
-
+                        
                         if isempty(top_neighbors{i}) || isempty(bottom_neighbors{i})
                             % 如果上下有一个大于1，而且还有一个为0，那么区域种类一定是BTAir
                             casetypes{i} = CaseType.BTAir;
@@ -239,7 +239,7 @@ classdef RegionsInput < handle
                             % 如果不是，那么就是AllayAir
                             casetypes{i} = CaseType.AlleyAir;
                         end
-
+                        
                     elseif i >= i_current
                         regions_bc_type{i} = BC_TYPE.AABB;
                         casetypes{i} = CaseType.FerriteCurrent;
@@ -249,12 +249,12 @@ classdef RegionsInput < handle
                     end
                 end
             end
-
+            
             obj.all_lefts = left_neighbors;
             obj.all_rights = right_neighbors;
             obj.all_tops = top_neighbors;
             obj.all_bottoms = bottom_neighbors;
-
+            
             obj.all_BC_types = regions_bc_type;
             obj.all_casetype = casetypes;
         end
@@ -270,55 +270,55 @@ classdef RegionsInput < handle
         function cal_other_info(obj)
             r_num = obj.regions_num;
             sr_num = obj.special_regions_num;
-
+            
             obj.all_H_max = obj.H_max * ones(r_num, 1);
             obj.all_N_max = obj.N_max * ones(r_num, 1);
             
             other_mu_r = obj.air_mu_r * ones(r_num - sr_num, 1);
             other_J_r = zeros(r_num - sr_num, 1);
-
+            
             special_mu_r = zeros(sr_num, 1);
             special_J_r = zeros(sr_num, 1);
-
+            
             for i=1:sr_num
                 special_mu_r(i) = obj.special_region_property(i,1);
                 special_J_r(i) = obj.special_region_property(i,2);
             end
-
+            
             obj.all_mu_r = [other_mu_r; special_mu_r];
             obj.all_J_r = [other_J_r; special_J_r];
-
+            
         end
-
+        
         function [H_max, N_max] = rtn_HN_max(obj)
             H_max = obj.all_H_max;
             N_max = obj.all_N_max;
         end
-
+        
         function [mu_r, J_r] = rtn_mu_J(obj)
             mu_r = obj.all_mu_r;
             J_r = obj.all_J_r;
         end
-
+        
         function [regions, region_num, current_regions] = rtn_regions(obj)
             regions = obj.divided_rects;
             region_num = obj.regions_num;
             current_regions = obj.special_region_area;
-
+            
         end
-
+        
         function [bctype, casetype] = rtn_types(obj)
             bctype = obj.all_BC_types;
             casetype = obj.all_casetype;
         end
-
+        
         function [lefts, rights, tops, bottoms] = rtn_boundarys(obj)
             lefts = obj.all_lefts;
             rights = obj.all_rights;
             tops = obj.all_tops;
             bottoms = obj.all_bottoms;
         end
-
+        
         function current_idx = rtn_current_idx(obj)
             current_idx = (obj.regions_num - obj.special_regions_num + 1):(obj.regions_num);
         end

@@ -209,11 +209,10 @@ classdef AllRegions < handle
                 end
                 % 创建一个用于代入数据的矩阵
                 [row_idx, col_idx] = ndgrid(1:rows_len(i), 1:cols_len(j));
-                % 计算这个矩阵的值
-                % 需要先代入数据
+                
                 expr(row_hn, col_hn) = simplifyFraction(rhs(func));
-                f = matlabFunction((expr), "Vars", {row_hn, col_hn});
-                Q = arrayfun(@(x,y) -f(x,y), row_idx, col_idx);
+                f = matlabFunction(expr, "Vars", {row_hn, col_hn});
+                Q = arrayfun(@(x,y) (-f(x,y)), row_idx, col_idx);
                 
                 % 将这个值送入BCxx中
                 % 每处理一个区域，只会有一行的数据，除了c0 d0这样的以外写入2行
