@@ -8,7 +8,7 @@ num_points_y = 100;  % Y 上采样数
 
 x0 = linspace(0,0.28,num_points_x);
 y0 = linspace(0,0.28,num_points_y);
-z0 = 0.04;
+z0 = 0.15;
 
 % 原始 x0, y0
 [xGrid, yGrid] = meshgrid(x0, y0);

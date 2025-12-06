@@ -1,7 +1,7 @@
 %% 读取 CSV
 data = readmatrix('./comsol18.csv');
-x_csv = data(:,1);
-y_csv = data(:,2);
+y_csv = data(:,1); % 注意这里旋转了x和y轴坐标
+x_csv = data(:,2);
 z_csv = data(:,3);
 
 %% 读取 MAT
@@ -17,14 +17,14 @@ y_csv_shift = y_csv + y0;
 
 
 %% 将 CSV 数据插值到 MAT 网格上
-Z_csv_interp = griddata(x_csv_shift, y_csv_shift, z_csv, Xgrid, Ygrid);
+Z_csv_interp = griddata(x_csv_shift, y_csv_shift, z_csv, xGrid, yGrid);
 
 %% 求差值
 Diff = abs(Z_csv_interp - B_3D) ./ Z_csv_interp;
 
 %% 绘制差值图
 figure;
-surf(Xgrid, Ygrid, Diff);
+surf(xGrid, yGrid, Diff);
 shading interp;
 colorbar;
 title('Difference (CSV interpolated - MAT)');

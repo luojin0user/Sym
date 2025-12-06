@@ -180,6 +180,36 @@ classdef RectangleCoil < handle
             expr =  B_f_x ./ B_inf_x;
             obj.fx = matlabFunction(expr, 'Vars', {x, y, z});
         end
+
+            function fx = factor_x_real(obj, x, y, z)
+            mu_0 = obj.mu0;
+            Ip = obj.Ir;
+            Zc = obj.thick;
+            
+            % syms x y z real
+            g1 = sqrt((x - obj.m_xl)^2 + (z - Zc)^2);
+            g2 = sqrt((x - obj.m_xr)^2 + (z - Zc)^2);
+            g3 = obj.y_cl1 - y;
+            g4 = obj.y_cr2 - y;
+            
+            g1_2pi = g1 .* 2 .* pi;
+            g2_2pi = g2 .* 2 .* pi;
+            
+            alpha1 = acos((x - obj.m_xl) ./ g1);
+            alpha2 = acos((obj.m_xr - x) ./ g2);
+            
+            B_inf_x = sqrt((mu_0 .* Ip ./ g1_2pi)^2 + (mu_0 .* Ip ./ g2_2pi)^2 ...
+                - 2 .* (mu_0 .* Ip ./ g1_2pi) .* (mu_0 .* Ip ./ g2_2pi) .* cos(pi - alpha1 - alpha2));
+            
+            B_f_1 = mu_0 .* Ip ./ (2 .* g1_2pi) .* (g4 ./ sqrt(g1^2 + g4^2) - g3 ./ sqrt(g1^2 + g3^2));
+            B_f_2 = mu_0 .* Ip ./ (2 .* g2_2pi) .* (g4 ./ sqrt(g2^2 + g4^2) - g3 ./ sqrt(g2^2 + g3^2));
+            
+            B_f_x = sqrt(B_f_1^2 + B_f_2^2 ...
+                - 2 .* B_f_1 .* B_f_2 .* cos(pi - alpha1 - alpha2));
+            
+            expr =  B_f_x ./ B_inf_x;
+            fx = expr;
+        end
         
         
         function factor_y(obj)
